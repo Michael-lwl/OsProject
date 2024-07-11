@@ -2,7 +2,7 @@
 
 class Data_Impl : public Data {
     public:
-        Data_Impl(unsigned int elementLength): Data(elementLength){
+        Data_Impl(unsigned int elementLength):  Data(elementLength, elementLength){
         }
         ~Data_Impl(){}
         int checkData(){return 0;}

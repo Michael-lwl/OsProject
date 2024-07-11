@@ -14,6 +14,6 @@ void simpleAndClean(void *ptr)
 
 int main()
 {
-    std::cout<<colorize("Test", Color::BLUE)<<std::endl;
+    std::cout<<colorize("T", Color::BLUE)<<"es"<<colorize("t", Color::RED)<<std::endl;
     return 0;
 }

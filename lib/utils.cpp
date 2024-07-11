@@ -13,7 +13,7 @@ void safeFree(void *ptr)
 unsigned char *createRandomString(unsigned int size)
 {
     unsigned int n = size % 63;
-    unsigned char *string = (unsigned char *)malloc((n * sizeof(char)) + 1);
+    unsigned char *string = (unsigned char *) malloc((n * sizeof(char)) + 1);
     if (string == nullptr)
         return nullptr;
     if (n == 0)
@@ -29,15 +29,6 @@ unsigned char *createRandomString(unsigned int size)
 unsigned char *createRandomSizedString()
 {
     return createRandomString(rand());
-}
-
-unsigned int getLastNBits(unsigned int num, unsigned int n)
-{
-    return num & ((1 << n) - 1);
-}
-unsigned int getFirstNBits(unsigned int num, unsigned int n)
-{
-    return num >> (sizeof(num) * 8 - n);
 }
 
 const std::string colorCharCode(Color c){

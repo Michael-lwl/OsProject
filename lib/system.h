@@ -18,6 +18,7 @@ class System {
         virtual unsigned long getFileCount() = 0;
         virtual unsigned long getFileSize(std::string* filePath) = 0;
         virtual File* createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) = 0;
+        virtual File* getFile(std::string* filePath) = 0;
         virtual unsigned long calcTotalSize(Array* data) = 0;
 
         //Getter and setter

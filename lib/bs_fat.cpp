@@ -5,7 +5,7 @@ bool filePathIsBlank(const std::string* filePath) {
     return filePath == nullptr || filePath->empty();
 }
 ///May return nullptr if there is no file with that name
-BsFile* BsFat::getFileForPath(const std::string* path) {
+BsFile* BsFat::getBsFileForPath(const std::string* path) {
     if (filePathIsBlank(path)){
         return nullptr;
     }
@@ -20,13 +20,11 @@ BsFile* BsFat::getFileForPath(const std::string* path) {
 bool BsFat::deleteFile(std::string* filePath) {
     if (filePathIsBlank(filePath))
         return false;
-    for (unsigned int i = 0; i < MAX_FILE_COUNT; i++) {
-        if ((*filePath).compare(*files[i]->getFilePath())){
-            delete files[i];
-            return true;
-        }
-    }
-    return false;
+    BsFile* f = getBsFileForPath(filePath);
+    if (f == nullptr)
+        return false;
+    delete f;
+    return true;
 }
 
 unsigned long BsFat::getFreeSpace() {
@@ -56,7 +54,7 @@ unsigned long BsFat::getFileCount() {
 }
 
 unsigned long BsFat::getFileSize(std::string* filePath) {
-    BsFile* file = getFileForPath(filePath);
+    BsFile* file = getBsFileForPath(filePath);
     if (file == nullptr) {
         std::cerr<<"Couldn't get file \""<<filePath<<"\""<<std::endl;
         return 0;
@@ -70,7 +68,7 @@ File* BsFat::createFile(std::string* filePath, unsigned long fileSize, unsigned 
         return nullptr;
     }
 
-    if (getFileForPath(filePath) != nullptr) {
+    if (getBsFileForPath(filePath) != nullptr) {
         std::cerr<<"Cannot create file \""<<filePath<<"\": File already exists!"<<std::endl;
         return nullptr;
     }
@@ -81,7 +79,9 @@ File* BsFat::createFile(std::string* filePath, unsigned long fileSize, unsigned 
     return f;
 }
 
-
+File* BsFat::getFile(std::string* filePath) {
+    return getBsFileForPath(filePath);
+}
 
 BsCluster* BsFat::getNewCluster() {
     struct BsCluster *output = nullptr;
@@ -104,9 +104,7 @@ BsCluster* BsFat::getNewCluster() {
 unsigned int BsFat::getFirstFreeFileIndex() {
     for (unsigned int i = 0; i < MAX_FILE_COUNT; i++)
     {
-        if ((files[i]) == nullptr)
-            continue;
-        if (files[i]->getFileStart() == nullptr)
+        if (files[i] == nullptr || files[i]->getFileStart() == nullptr)
             return i;
     }
     return -1;

@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <exception>
 
-#define MAX_FILE_COUNT 10
+#define MAX_FILE_COUNT (static_cast<unsigned int>(-1))
 
 class BsFile;
 class BsFat;
@@ -108,6 +108,7 @@ class BsFat : public System
         unsigned long getFileCount();
         unsigned long getFileSize(std::string* filePath);
         File* createFile(std::string* filePath, unsigned long fileSize, unsigned char flags);
+        File* getFile(std::string* filePath);
         unsigned long calcTotalSize(Array* data);
 
         //Fat functions
@@ -127,7 +128,7 @@ class BsFat : public System
 
     private:
         ///May return nullptr if there is no file with that name
-        BsFile* getFileForPath(const std::string* path);
+        BsFile* getBsFileForPath(const std::string* path);
 
         BsFile* files[MAX_FILE_COUNT];
         /// The size of a block in bytes
