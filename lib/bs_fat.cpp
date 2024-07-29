@@ -1,11 +1,12 @@
 #include "bs_system.h"
 #include <iostream>
+#include <memory>
 
 bool filePathIsBlank(const std::string* filePath) {
     return filePath == nullptr || filePath->empty();
 }
 ///May return nullptr if there is no file with that name
-BsFile* BsFat::getBsFileForPath(const std::string* path) {
+std::shared_ptr<BsFile> BsFat::getBsFileForPath(const std::string* path) {
     if (filePathIsBlank(path)){
         return nullptr;
     }
@@ -20,10 +21,10 @@ BsFile* BsFat::getBsFileForPath(const std::string* path) {
 bool BsFat::deleteFile(std::string* filePath) {
     if (filePathIsBlank(filePath))
         return false;
-    BsFile* f = getBsFileForPath(filePath);
+    std::shared_ptr<BsFile> f = getBsFileForPath(filePath);
     if (f == nullptr)
         return false;
-    delete f;
+    f.reset();
     return true;
 }
 
@@ -33,7 +34,7 @@ unsigned long BsFat::getFreeSpace() {
     auto counter = 0;
     for (unsigned int i = 0; i < blockCount; i++)
     {
-        if (blocks[i].status == Status::FREE)
+        if (blocks[i]->status == Status::FREE)
             counter++;
     }
     return counter;
@@ -54,7 +55,7 @@ unsigned long BsFat::getFileCount() {
 }
 
 unsigned long BsFat::getFileSize(std::string* filePath) {
-    BsFile* file = getBsFileForPath(filePath);
+    std::shared_ptr<BsFile> file = getBsFileForPath(filePath);
     if (file == nullptr) {
         std::cerr<<"Couldn't get file \""<<filePath<<"\""<<std::endl;
         return 0;
@@ -62,34 +63,36 @@ unsigned long BsFat::getFileSize(std::string* filePath) {
     return file->getFileSizeInBytes();
 }
 
-File* BsFat::createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) {
+std::shared_ptr<File> BsFat::createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) {
+    using namespace std;
+
     if (filePathIsBlank(filePath)) {
-        std::cerr<<"Cannot create file \""<<filePath<<"\": Filepath cannot be empty!"<<std::endl;
+        cerr<<"Cannot create file \""<<filePath<<"\": Filepath cannot be empty!"<<endl;
         return nullptr;
     }
 
     if (getBsFileForPath(filePath) != nullptr) {
-        std::cerr<<"Cannot create file \""<<filePath<<"\": File already exists!"<<std::endl;
+        cerr<<"Cannot create file \""<<filePath<<"\": File already exists!"<<endl;
         return nullptr;
     }
 
     int index = getFirstFreeFileIndex();
-    BsFile* f = new BsFile(this, filePath, fileSize, flags);
+    shared_ptr<BsFile> f = make_shared<BsFile>(this, filePath, fileSize, flags);
     files[index] = f;
     return f;
 }
 
-File* BsFat::getFile(std::string* filePath) {
+std::shared_ptr<File> BsFat::getFile(std::string* filePath) {
     return getBsFileForPath(filePath);
 }
 
-BsCluster* BsFat::getNewCluster() {
-    struct BsCluster *output = nullptr;
+std::shared_ptr<BsCluster> BsFat::getNewCluster() {
+    std::shared_ptr<BsCluster> output = nullptr;
     unsigned int initialOffset = rand() % blockCount;
     unsigned int offset = initialOffset;
     do
     {
-        output = &blocks[offset++];
+        output = blocks[offset++];
         if (offset >= blockCount)
             offset = 0;
     } while (output->status != Status::FREE && offset != initialOffset);

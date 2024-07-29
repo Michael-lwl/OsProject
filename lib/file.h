@@ -1,4 +1,5 @@
 #include "./array.h"
+#include <memory>
 #include <string>
 
 class File {
@@ -20,7 +21,7 @@ class File {
         }
 
         virtual bool setData(Array* data) = 0;
-        virtual Array* getData() = 0;
+        virtual std::unique_ptr<Array> getData() = 0;
         virtual bool resizeFile(unsigned long newFileSize) = 0;
 
         //Getter and setter
