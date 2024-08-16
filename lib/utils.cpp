@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "./utils.h"
+#include "./../include/utils.h"
 
 void safeFree(void *ptr)
 {
@@ -54,6 +54,10 @@ const std::string colorCharCode(Color c){
     }
 }
 
+std::string colorize_headless(std::string str, Color c) {
+    return std::string(colorCharCode(c)).append(str);
+}
+
 std::string colorize(std::string str, Color c) {
-    return std::string(colorCharCode(c)).append(str).append(colorCharCode(WHITE));
+    return colorize_headless(str, c).append(colorCharCode(WHITE));
 }

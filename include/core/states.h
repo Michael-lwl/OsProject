@@ -1,3 +1,6 @@
+#ifndef STATES_H
+#define STATES_H
+
 enum Status
 {
     RESERVED,
@@ -21,3 +24,5 @@ enum Flags
     IS_TEMP = 4,
     IS_DIR = 8,
 };
+
+#endif

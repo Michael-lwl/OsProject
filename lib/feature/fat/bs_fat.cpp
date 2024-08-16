@@ -1,4 +1,4 @@
-#include "bs_system.h"
+#include "./../../../include/feature/fat/bs_system.h"
 #include <iostream>
 #include <memory>
 
@@ -81,6 +81,12 @@ std::shared_ptr<File> BsFat::createFile(std::string* filePath, unsigned long fil
     files[index] = f;
     return f;
 }
+bool BsFat::saveInFile(std::string* filePath, std::shared_ptr<Array> data){
+    auto file = getFile(filePath);
+    if (file == nullptr)
+        return false;
+    return file.get()->setData(data.get());
+}
 
 std::shared_ptr<File> BsFat::getFile(std::string* filePath) {
     return getBsFileForPath(filePath);
@@ -111,15 +117,4 @@ unsigned int BsFat::getFirstFreeFileIndex() {
             return i;
     }
     return -1;
-}
-
-unsigned long BsFat::calcTotalSize(Array* data) {
-    unsigned long output = 0;
-    auto dataLength = getData()->getDataLength();
-    auto totalLength = getData()->getTotalLength();
-    for (unsigned long dataLen = data->getLength(); dataLen > 0; dataLen -= dataLength) {
-        output += totalLength;
-    }
-    return output;
-
 }

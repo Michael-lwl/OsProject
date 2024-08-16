@@ -1,5 +1,5 @@
-#include "./bs_system.h"
-#include "array.h"
+#include "./../../../include/feature/fat/bs_system.h"
+#include "./../../../include/array.h"
 #include <iostream>
 #include <memory>
 void BsFile::freeFile() {
@@ -43,7 +43,7 @@ bool BsFile::setData(Array* data) {
     unsigned long offset = 0;
     while (curCluster != nullptr) {
         unique_ptr<Array> curData = make_unique<Array>(filesystem->getBlockSize(),data->getArray() + offset, MemAllocation::DONT_DELETE);
-        unique_ptr<Array> encodedData = filesystem->getData()->encodeData(curData.get());
+        unique_ptr<Array> encodedData = filesystem->getDataHandler()->encodeData(curData.get());
         setDataInCluster(curCluster.get(), encodedData.get());
         curCluster = curCluster->next;
     }
@@ -58,15 +58,15 @@ std::unique_ptr<Array> BsFile::getData() {
         return make_unique<Array>((unsigned int) 0);
     }
 
-    unsigned long arrLen = ((unsigned long) filesystem->getData()->getDataLength()) * clusterCount;
+    unsigned long arrLen = ((unsigned long) filesystem->getDataHandler()->getDataLength()) * clusterCount;
     unique_ptr<Array> data = make_unique<Array>(arrLen);
 
     BsCluster* curCluster = fileStart.get();
     unsigned int arrPtrOffset = 0;
     while (curCluster != nullptr) {
         shared_ptr<Array> arrEncoded = make_shared<Array>(filesystem->getBlockSize(), curCluster->data, MemAllocation::DONT_DELETE);
-        unique_ptr<Array> arr = filesystem->getData()->getData(arrEncoded.get());
-        for (unsigned int i = 0; i < filesystem->getData()->getDataLength(); i++){
+        unique_ptr<Array> arr = filesystem->getDataHandler()->getData(arrEncoded.get());
+        for (unsigned int i = 0; i < filesystem->getDataHandler()->getDataLength(); i++){
             data->getArray()[arrPtrOffset++] = arr->getArray()[i];
         }
         curCluster = curCluster->next.get();
