@@ -13,6 +13,20 @@ const int PARTITION_TABLE = 0x01BE;
 const int BOOT_SIGNATURE = 0x01FE;
 const int BOOT_SECTOR = 0x01FF;
 
+struct CHS {
+    unsigned char c;
+    unsigned char h;
+    unsigned char s;
+};
+
+struct partition {
+    char isBootable;
+    CHS firstSektor;
+    char type;
+    CHS lastSektor;
+    System (DATA* startPtr);
+    unsigned int length;
+};
 class Partition {
     public:
     Partition(unsigned char bootable,
@@ -66,6 +80,19 @@ class Partition {
     }
     unsigned int getDiskSignature(){
     return diskSignature;
+    }
+
+    void boot(){
+    if ( this.bootable == NULL || this.bootable == 0 ) {
+    throw("Error while booting the file system" )
+    }
+    else(){
+    case bs_fat:
+    // main Methode aus dem Praktikum
+    case iNode:
+    //implementier Inode
+    }
+
     }
 
 
