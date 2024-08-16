@@ -24,7 +24,7 @@ struct partition {
     CHS firstSektor;
     char type;
     CHS lastSektor;
-    System (data* startPtr);
+    System* startPtr;
     unsigned int length;
 };
 class Partition {
