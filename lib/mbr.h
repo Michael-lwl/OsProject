@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include "system.h"
 
 const int BOOT= 0x0000;
 const int MBR_SIZE = 512;
@@ -64,7 +65,7 @@ class Partition {
     return bootable;
     }
     unsigned int getPartitionType(){
-    return partition Type;
+    return partitionType;
     }
     unsigned int getStartSector(){
     return startSector;
