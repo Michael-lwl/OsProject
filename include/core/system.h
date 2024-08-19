@@ -64,8 +64,3 @@ class System {
         size_t driveSize;
 
 };
-
-
-int main() {
-    System* festePlatte[2];
-}

@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include "../include/utils.h"
+#include "./../include/core/data_sizes.h"
 
 #define TODO std::cout << "TODO: implement the rest" << std::endl;
 void simpleAndClean(void *ptr)
@@ -18,7 +19,10 @@ int colouredOutputTest()
     return 0;
 }
 
+const size_t STD_BLOCK_SIZE = 4 * getSizeInByte(ByteSizes::KB);
+
 int main(int argc, char** argv) {
+    std::cerr<<STD_BLOCK_SIZE<<std::endl;
     /*unsigned char* FestePlatte;
     if (hasFile) {
         FestePlatte = readFile(filename);

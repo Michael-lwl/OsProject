@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <chrono>
+#include <ctime>
 #include <string>
 
 enum Color {
@@ -34,6 +36,12 @@ inline unsigned int getFirstNBits(unsigned int num, unsigned int n ) {
     if (is_system_little_endian())
         return (num >> (sizeof(num) * 8 - n));
     return (num & ((1 << n) - 1));
+}
+
+///Returns the current time as std::time_t
+inline time_t getCurrentTime() {
+    auto now = std::chrono::system_clock::now();
+    return std::chrono::system_clock::to_time_t(now);
 }
 
 void safeFree(void *ptr);

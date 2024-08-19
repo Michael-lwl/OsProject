@@ -13,10 +13,10 @@ inline size_t mapToInodeSize(size_t driveSizeInByte) {
   if (driveSizeInByte <= ByteSizes::GB) {
     return INodeSizes::LE_1GB;
   }
-  if (driveSizeInByte <= 2 * ByteSizes::GB) {
+  if (driveSizeInByte < 2 * ByteSizes::GB) {
     return INodeSizes::LT_2GB;
   }
-  if (driveSizeInByte <= 3 * ByteSizes::GB) {
+  if (driveSizeInByte < 3 * ByteSizes::GB) {
     return INodeSizes::LT_3GB;
   }
   if (driveSizeInByte < ByteSizes::TB) {
@@ -32,8 +32,11 @@ public:
     this->iNodeCount = driveSizeInBytes/iNodeSize;
     this->blockSize = blockSize;
     for (size_t i = 0; i < iNodeCount; i++) {
-        iNodes[i] = new (iNodes + i) INode();
+        //TODO: Verify that this works
+        iNodes[i] = new (iNodes + i) INode(nullptr, 0, 0, blockSize);
     }
+    auto datablockStartPtr = startPtr + sizeof(INodeSystem) + (sizeof(INode) * iNodeCount);
+
   }
 
   /// Deletes the file with the specified path, and only the specified file

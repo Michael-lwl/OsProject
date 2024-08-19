@@ -45,7 +45,6 @@ class BsFile : public File {
 
         bool setData(Array* data) override;
         std::unique_ptr<Array> getData() override;
-        bool resizeFile(unsigned long newFileSize) override;
 
         std::shared_ptr<BsCluster> getFileStart() const {return fileStart;}
         BsFat* getFileSystem() const {return filesystem;}

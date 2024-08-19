@@ -24,7 +24,8 @@ class Block {
             return true;
         }
 
-        virtual bool setData(Array* data)= 0;
+        virtual bool setData(Array* data) = 0;
+        virtual Array getData() = 0;
 
         //Getter and Setter
 

@@ -74,14 +74,6 @@ std::unique_ptr<Array> BsFile::getData() {
 
     return data;
 }
-bool BsFile::resizeFile(unsigned long newFileSize) {
-    if (newFileSize == getFileSizeInBytes())
-        return true;
-    if (newFileSize < getFileSizeInBytes())
-        return trimToSize(newFileSize);
-    return expandToSize(newFileSize);
-
-}
 
 bool BsFile::trimToSize(unsigned long newFileSize) {
     if (newFileSize == getFileSizeInBytes())

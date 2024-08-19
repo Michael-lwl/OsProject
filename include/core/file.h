@@ -8,10 +8,10 @@
 class File {
     public:
         ///Creates an empty file (this->getFileSizeInByte() == 0)
-        File(std::string* filePath, unsigned char flags): File(filePath, flags, 0){
+        File(const std::string* filePath, unsigned char flags): File(filePath, flags, 0){
             //Create Empty File
         }
-        File(std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes) {
+        File(const std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes) {
             this->filePath = filePath;
             this->flags = flags;
             fileSizeInBytes = reservedSpaceInBytes;
@@ -29,7 +29,13 @@ class File {
         ///Returns the actual data, without the file's system's implementation of data saving
         virtual std::unique_ptr<Array> getData() = 0;
         ///Tries to resize this file to the given size
-        virtual bool resizeFile(unsigned long newFileSize) = 0;
+        bool resizeFile(unsigned long newFileSize) {
+            if (newFileSize == getFileSizeInBytes())
+                return true;
+            if (newFileSize < getFileSizeInBytes())
+                return trimToSize(newFileSize);
+            return expandToSize(newFileSize);
+        }
 
         //Getter and setter
 

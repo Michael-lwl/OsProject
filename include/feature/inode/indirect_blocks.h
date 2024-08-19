@@ -14,11 +14,13 @@ class IndirectBlock: public Block {
         }
 
         bool setData(Array* data) override;
+        Array getData() override;
 
-    protected:
         //Getter and Setter
         ///Returns the maximum capacity of this IndirectBlock
         unsigned int getMaximumCapacity() const {return maximumCapacity;}
+
+    protected:
         ///Returns the current capacity of this IndirectBlock
         unsigned int getCurrentCapacity() const {return currentCapacity;}
         ///Sets the current capacity of this IndirectBlock to its value.
@@ -49,11 +51,10 @@ class FirstIndirectBlock : public IndirectBlock {
         }
 
         bool setData(Array* data) override;
-        unsigned int getCapacity() const {return capacity;}
+        Array getData() override;
 
     private:
         DataBlock** blocks;
-        unsigned int capacity;
 };
 
 class SecondIndirectBlock : public IndirectBlock {
@@ -75,6 +76,7 @@ class SecondIndirectBlock : public IndirectBlock {
         }
 
         bool setData(Array* data) override;
+        Array getData() override;
 
     private:
         FirstIndirectBlock* blocks;
@@ -101,6 +103,7 @@ class ThirdIndirectBlock : public IndirectBlock {
         }
 
         bool setData(Array* data) override;
+        Array getData() override;
 
     private:
         SecondIndirectBlock* blocks;

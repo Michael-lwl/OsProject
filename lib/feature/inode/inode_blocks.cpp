@@ -21,6 +21,10 @@ bool DataBlock::setData(Array *data) {
   return true;
 }
 
+Array DataBlock::getData() {
+    
+}
+
 bool FirstIndirectBlock::setData(Array *data) {
   unsigned int maxSize = data->getLength();
   if (maxSize > this->getMaximumCapacity()) {
@@ -57,6 +61,10 @@ bool FirstIndirectBlock::setData(Array *data) {
   return true;
 }
 
+Array FirstIndirectBlock::getData() {
+    
+}
+
 bool SecondIndirectBlock::setData(Array *data) {
   unsigned int maxSize = data->getLength();
   if (maxSize > this->getMaximumCapacity()) {
@@ -88,6 +96,10 @@ bool SecondIndirectBlock::setData(Array *data) {
   return true;
 }
 
+Array SecondIndirectBlock::getData() {
+    
+}
+
 bool ThirdIndirectBlock::setData(Array *data) {
   unsigned int maxSize = data->getLength();
   if (maxSize > this->getMaximumCapacity()) {
@@ -117,4 +129,8 @@ bool ThirdIndirectBlock::setData(Array *data) {
   }
   this->setCurrentCapacity(data->getLength());
   return true;
+}
+
+Array ThirdIndirectBlock::getData() {
+    
 }

@@ -20,11 +20,17 @@ class Directory: public File {
         }
 
         ///Does not work on a Directory!
-        bool setData(Array* data) {return false;};
+        bool setData(Array* data) {
+            (void) data;
+            return false;
+        };
         ///Returns the actual data, without the file's system's implementation of data saving
         virtual std::unique_ptr<Array> getData() = 0;
         ///Does not work on a Directory!
-        bool resizeFile(unsigned long newFileSize) {return false;}
+        bool resizeFile(unsigned long newFileSize) {
+            (void) newFileSize;
+            return false;
+        }
 
         ///Tries to add the file as a child of this directory
         virtual bool addChild(std::shared_ptr<File> file) = 0;
@@ -34,9 +40,9 @@ class Directory: public File {
 
     protected:
         ///Does not work on Directory!
-        bool trimToSize(unsigned long newFileSize) {return false;}
+        bool trimToSize(unsigned long newFileSize);
         ///Does not work on Directory!
-        bool expandToSize(unsigned long newFileSize) {return false;}
+        bool expandToSize(unsigned long newFileSize);
 
     private:
 
