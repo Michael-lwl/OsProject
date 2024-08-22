@@ -5,8 +5,8 @@
 void BsFile::freeFile() {
     removeAllClusters(fileStart);
 }
-void BsFile::removeAllClusters(std::shared_ptr<BsCluster> curCluster) {
-    std::shared_ptr<BsCluster> tmp;
+void BsFile::removeAllClusters(BsCluster* curCluster) {
+    BsCluster* tmp;
     while (curCluster != nullptr){
         curCluster->status = Status::FREE;
         curCluster->previous = nullptr;
@@ -39,12 +39,12 @@ bool BsFile::setData(Array* data) {
         cout<<"File expanded accordingly!"<<endl;
     }
 
-    shared_ptr<BsCluster> curCluster = fileStart;
+    BsCluster* curCluster = fileStart;
     unsigned long offset = 0;
     while (curCluster != nullptr) {
-        unique_ptr<Array> curData = make_unique<Array>(filesystem->getBlockSize(),data->getArray() + offset, MemAllocation::DONT_DELETE);
+        unique_ptr<Array> curData = make_unique<Array>(filesystem->BLOCK_SIZE ,data->getArray() + offset, MemAllocation::DONT_DELETE);
         unique_ptr<Array> encodedData = filesystem->getDataHandler()->encodeData(curData.get());
-        setDataInCluster(curCluster.get(), encodedData.get());
+        setDataInCluster(curCluster, encodedData.get());
         curCluster = curCluster->next;
     }
 
@@ -61,15 +61,15 @@ std::unique_ptr<Array> BsFile::getData() {
     unsigned long arrLen = ((unsigned long) filesystem->getDataHandler()->getDataLength()) * clusterCount;
     unique_ptr<Array> data = make_unique<Array>(arrLen);
 
-    BsCluster* curCluster = fileStart.get();
+    BsCluster* curCluster = fileStart;
     unsigned int arrPtrOffset = 0;
     while (curCluster != nullptr) {
-        shared_ptr<Array> arrEncoded = make_shared<Array>(filesystem->getBlockSize(), curCluster->data, MemAllocation::DONT_DELETE);
+        shared_ptr<Array> arrEncoded = make_shared<Array>(filesystem->BLOCK_SIZE , curCluster->data, MemAllocation::DONT_DELETE);
         unique_ptr<Array> arr = filesystem->getDataHandler()->getData(arrEncoded.get());
         for (unsigned int i = 0; i < filesystem->getDataHandler()->getDataLength(); i++){
             data->getArray()[arrPtrOffset++] = arr->getArray()[i];
         }
-        curCluster = curCluster->next.get();
+        curCluster = curCluster->next;
     }
 
     return data;
@@ -80,8 +80,8 @@ bool BsFile::trimToSize(unsigned long newFileSize) {
         return true;
     if ((newFileSize > getFileSizeInBytes()) || (newFileSize > filesystem->getDataSize()))
         return false;
-    unsigned long plusOne = (newFileSize % filesystem->getBlockSize() != 0 ? 1 : 0);
-    unsigned long newClusterCount = (newFileSize / (filesystem->getBlockSize())) + (plusOne);
+    unsigned long plusOne = (newFileSize % filesystem->BLOCK_SIZE != 0 ? 1 : 0);
+    unsigned long newClusterCount = (newFileSize / (filesystem->BLOCK_SIZE)) + (plusOne);
     /*
         full size= 256mb
         clusterSize 32 mb
@@ -93,7 +93,7 @@ bool BsFile::trimToSize(unsigned long newFileSize) {
         32 32 32 32 32 32|32 32
 
     */
-    std::shared_ptr<BsCluster> cluster = fileStart;
+    BsCluster* cluster = fileStart;
 
     for (unsigned long i = 1; i < newClusterCount; i++) {
         if (cluster->next == nullptr){
@@ -114,10 +114,10 @@ bool BsFile::expandToSize(unsigned long newFileSize) {
     if (newFileSize < getFileSizeInBytes() || newFileSize > filesystem->getDataSize())
         return false;
 
-    unsigned long plusOne = (newFileSize % filesystem->getBlockSize() != 0 ? 1 : 0);
-    unsigned long newClusterCount = (newFileSize / (filesystem->getBlockSize())) + (plusOne);
+    unsigned long plusOne = (newFileSize % filesystem->BLOCK_SIZE != 0 ? 1 : 0);
+    unsigned long newClusterCount = (newFileSize / (filesystem->BLOCK_SIZE)) + (plusOne);
 
-    shared_ptr<BsCluster> curCluster = fileStart;
+    BsCluster* curCluster = fileStart;
 
     for (unsigned long i = 1; i < clusterCount; i++) {
         if (curCluster == nullptr) {
@@ -126,13 +126,13 @@ bool BsFile::expandToSize(unsigned long newFileSize) {
         }
         curCluster = curCluster->next;
     }
-    shared_ptr<BsCluster> next;
+    BsCluster* next;
     unsigned long neededClusters = newClusterCount - clusterCount;
 
     for (unsigned long i = 1; i <= neededClusters; i++) {
         next = filesystem->getNewCluster();
         if (next == nullptr) {
-            std::cerr<<"Couldnt allocate memory ("<<i<<"|"<<neededClusters<<")"<<endl;
+            cerr<<"Couldnt allocate memory ("<<i<<"|"<<neededClusters<<")"<<endl;
             return false;
         }
         curCluster->next = next;

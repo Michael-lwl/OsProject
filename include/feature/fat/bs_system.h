@@ -5,19 +5,20 @@
 #include "./../../utils.h"
 #include <cstddef>
 #include <exception>
+#include <iostream>
 #include <memory>
+#include <string>
 
-#define MAX_FILE_COUNT (static_cast<unsigned int>(-1))
-
+//#define MAX_FILE_COUNT (static_cast<unsigned int>(-1))
+#define MAX_FILE_COUNT 12
 class BsFile;
-class BsFat;
 
 struct BsCluster
 {
     ///The next cluster in the associated file, might be null if this cluster is unused or the last cluster in a File
-    std::shared_ptr<BsCluster> next;
+    BsCluster* next;
     ///The previous cluster in the associated file, might be null if this cluster is unused or the first in a File
-    std::shared_ptr<BsCluster> previous;
+    BsCluster* previous;
     ///The status of this cluster
     unsigned char status;
     ///The index of this cluster
@@ -26,15 +27,162 @@ struct BsCluster
     unsigned char *data;
 };
 
+class BsFat : public System
+{
+
+    public:
+    // Factory function to allocate and construct BsFat with extra memory
+    static BsFat* create(unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+        // Calculate number of blocks
+        unsigned long blockCount = driveSize / blockSize;
+
+        // Calculate the total size needed: BsFat object + BsCluster objects + data blocks
+        size_t totalSize = sizeof(BsFat) + blockCount * (sizeof(BsCluster) + blockSize);
+
+        // Allocate a block of memory large enough to hold BsFat + all data
+        void* memory = ::operator new(totalSize); // Raw allocation
+
+        // Use placement new to construct the BsFat object in the allocated memory
+        BsFat* bsFat = new (memory) BsFat(driveSize, blockSize, dataHandler, blockCount);
+
+        return bsFat;
+    }
+
+
+        static inline char getCharForStatus(char status)
+        {
+            switch (status)
+            {
+                case Status::RESERVED:
+                    return StatusChar::RESERVED_CHAR;
+                case Status::CORRUPTED:
+                    return StatusChar::CORRUPTED_CHAR;
+                case Status::FREE:
+                    return StatusChar::FREE_CHAR;
+                case Status::USED:
+                    return StatusChar::USED_CHAR;
+                default:
+                    return StatusChar::DEF_CHAR;
+            }
+        }
+
+        char getCharForObjective(BsCluster *cluster);
+
+        void showFat();
+
+        ~BsFat() {
+            for (unsigned int i = 0; i < blockCount; i++) {
+                BsCluster* cluster = getCluster(i);
+                cluster->~BsCluster();
+            }
+        }
+
+        void delFile(long index);
+        void setBlocks(std::shared_ptr<BsFile> newFile);
+
+        //Overridden function
+        bool deleteFile(std::string* filePath) override;
+        unsigned long getFreeSpace() override;
+        unsigned long getFileCount() override;
+        unsigned long getFileSize(std::string* filePath) override;
+        std::shared_ptr<File> createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) override;
+        bool saveInFile(std::string* filePath, std::shared_ptr<Array> data) override;
+        std::shared_ptr<File> getFile(std::string* filePath) override;
+        float getFragmentation() override;
+        bool defragDisk() override;
+
+        //Fat functions
+
+        ///returns false if the file array is full
+        bool hasFreeFileSpace();
+        /// @brief tries to get a free (random) cluster for the amount of blocks, after that it will return a nullptr
+        BsCluster* getNewCluster();
+        unsigned int getFirstFreeFileIndex();
+
+        //getter and setter
+        unsigned long getDataSize() const {return BLOCK_SIZE * blockCount;}
+        unsigned int getBlockCount() const {return blockCount;}
+
+    protected:
+
+    // Getter for a specific BsCluster object by index
+    BsCluster* getCluster(size_t blockIndex) {
+        if (blockIndex >= blockCount) {
+            std::string bIStr = std::to_string(blockIndex);
+            throw std::out_of_range(std::string("ClusterIndex ").append(bIStr).append(" out of bounds"));
+        }
+        return reinterpret_cast<BsCluster*>(reinterpret_cast<unsigned char*>(this) + sizeof(BsFat) + blockIndex * sizeof(BsCluster));
+    }
+
+    // Getter for the data block associated with a specific BsCluster
+    unsigned char* getDataBlock(size_t blockIndex) {
+        if (blockIndex >= blockCount) {
+            std::string bIStr = std::to_string(blockIndex);
+            throw std::out_of_range(std::string("DataBlockIndex ").append(bIStr).append(" out of bounds"));
+        }
+        return reinterpret_cast<unsigned char*>(this) + sizeof(BsFat) + (blockCount * sizeof(BsCluster)) + (blockIndex * BLOCK_SIZE);
+    }
+
+    private:
+        // Private constructor to be used by the factory function
+        BsFat(unsigned long driveSize, unsigned long blockSize, Data* dataHandler, unsigned long blockCount)
+            : System(dataHandler, driveSize, blockSize), blockCount(blockCount) {
+            // Initialize BsClusters and associate data with each cluster
+            for (size_t i = 0; i < blockCount; i++) {
+                BsCluster* cluster = getCluster(i);
+                new (cluster) BsCluster(); // Placement new to construct the cluster
+                // Initialize the cluster fields
+                cluster->status = Status::FREE;
+                cluster->blockIndex = i;
+                cluster->previous = nullptr;
+                cluster->next = nullptr;
+                cluster->data = getDataBlock(i);
+            }
+            for (size_t i = 0; i < MAX_FILE_COUNT; ++i) {
+                files[i] = std::make_shared<BsFile>(this, nullptr, 0, 0);
+            }
+        }
+        ///May return nullptr if there is no file with that name
+        std::shared_ptr<BsFile> getBsFileForPath(const std::string* path);
+        long getBsFileIndexForPath(const std::string* path);
+
+        unsigned int blockCount;
+        std::shared_ptr<BsFile> files[MAX_FILE_COUNT];
+};
+
 class BsFile : public File {
     public:
 
         BsFile(BsFat* fileSystem, std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes): File(filePath, flags, reservedSpaceInBytes) {
             filesystem = fileSystem;
+            if (reservedSpaceInBytes == 0) return;
+            fileStart = fileSystem->getNewCluster();
+            BsCluster* curCluster = fileStart;
+
+            unsigned long plusOne = (reservedSpaceInBytes % filesystem->BLOCK_SIZE != 0 ? 1 : 0);
+            clusterCount = (reservedSpaceInBytes / (filesystem->BLOCK_SIZE)) + (plusOne);
+
+            BsCluster* next;
+
+            for (unsigned long i = 1; i <= clusterCount; i++) {
+                curCluster->status = Status::USED;
+                next = filesystem->getNewCluster();
+                if (next == nullptr) {
+                    std::cerr<<"Couldnt allocate memory ("<<i<<"|"<<clusterCount<<")"<< std::endl;
+                    throw new std::exception();
+                }
+                curCluster->next = next;
+                next->previous = curCluster;
+                curCluster = next;
+                next->status = Status::USED;
+            }
+            curCluster->status = Status::USED;
         }
         ///Creates an empty BsFile (Reserves 0 Bytes of spacec)
         BsFile(BsFat* fileSystem, std::string* filePath, unsigned char flags): BsFile(fileSystem, filePath, flags, 0) {
-
+            if (this->getFileSizeInBytes()) {
+                trimToSize(0);
+            }
         }
 
         ~BsFile() {
@@ -46,7 +194,8 @@ class BsFile : public File {
         bool setData(Array* data) override;
         std::unique_ptr<Array> getData() override;
 
-        std::shared_ptr<BsCluster> getFileStart() const {return fileStart;}
+        BsCluster* getFileStart() const {return fileStart;}
+        void setFileStart(BsCluster* start) {fileStart = start;}
         BsFat* getFileSystem() const {return filesystem;}
         unsigned int getClusterCount() const {return clusterCount;}
 
@@ -58,95 +207,13 @@ class BsFile : public File {
 
         ///Sets all used clusters to empty clusters (does not empty the data)
         void freeFile();
-        void removeAllClusters(std::shared_ptr<BsCluster> startCluster);
+        void removeAllClusters(BsCluster* startCluster);
         BsFat* filesystem;
         ///The first cluster for this file
-        std::shared_ptr<BsCluster>fileStart;
+        BsCluster* fileStart;
         ///The count of clusters used by this file
         unsigned int clusterCount;
 
 };
 
-class BsFat : public System
-{
-
-    public:
-
-        BsFat(unsigned long driveSize, unsigned long blockSize, Data* dataHandler) : System(dataHandler, driveSize) {
-            unsigned int blockCount = driveSize / blockSize;
-            auto memory = new unsigned char[blockCount * (sizeof(BsCluster) + blockSize)];
-            //auto* memory= (unsigned char *) malloc (blockCount * (sizeof(struct BsCluster) + blockSize));
-            if (memory == nullptr){
-                throw ("Cannot assign Memory!");
-            }
-            for (size_t i = 0; i < blockCount; ++i) {
-                // Assign each block with custom deleter
-                blocks[i] = std::shared_ptr<BsCluster>(reinterpret_cast<BsCluster*>(memory + i * sizeof(BsCluster)), [](BsCluster* ptr) {
-                    ptr->~BsCluster(); // Manually call the destructor
-                    delete[] reinterpret_cast<unsigned char*>(ptr); // Delete the memory
-                });
-            }
-            this->blockCount = blockCount;
-            this->blockSize = blockSize;
-            this->dataPtr = std::shared_ptr<unsigned char>(memory + this->blockCount * sizeof(struct BsCluster));
-
-            for (unsigned int i = 0; i < blockCount; i++) {
-                auto* cluster = reinterpret_cast<BsCluster*>(memory + i * sizeof(struct BsCluster));
-                cluster->status = Status::FREE;
-                cluster->blockIndex = i;
-                cluster->previous = nullptr;
-                cluster->next = nullptr;
-                cluster->data = memory + i * blockSize;
-            }
-        }
-
-        ~BsFat() {
-            for (unsigned int i = 0; i < MAX_FILE_COUNT; i++) {
-                files[i].reset();
-            }
-            for (unsigned int i = 0; i < blockCount; i++) {
-                blocks[i].reset();
-
-            }
-        }
-
-        //Overridden function
-        bool deleteFile(std::string* filePath) override;
-        unsigned long getFreeSpace() override;
-        unsigned long getFileCount() override;
-        unsigned long getFileSize(std::string* filePath) override;
-        std::shared_ptr<File> createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) override;
-        bool saveInFile(std::string* filePath, std::shared_ptr<Array> data) override;
-        std::shared_ptr<File> getFile(std::string* filePath) override;
-
-        //Fat functions
-
-        ///returns false if the file array is full
-        bool hasFreeFileSpace();
-        /// @brief tries to get a free (random) cluster for the amount of blocks, after that it will return a nullptr
-        std::shared_ptr<BsCluster> getNewCluster();
-        unsigned int getFirstFreeFileIndex();
-
-        //getter and setter
-        std::shared_ptr<unsigned char> getDataPtr() const {return dataPtr;}
-        unsigned long getDataSize() const {return blockSize * blockCount;}
-        unsigned int getBlockSize() const {return blockSize;}
-        unsigned int getBlockCount() const {return blockCount;}
-
-
-    private:
-        ///May return nullptr if there is no file with that name
-        std::shared_ptr<BsFile> getBsFileForPath(const std::string* path);
-
-        std::shared_ptr<BsFile> files[MAX_FILE_COUNT];
-        /// The size of a block in bytes
-        unsigned int blockSize;
-        unsigned int blockCount;
-        /// All blocks as one big array.
-        ///WARNING: Its size is not "blocksize * sizeof(BsCluster)" but "blockCount * (sizeof(struct BsCluster) + blockSize)" because the data is appended (although similiarly sorted) after the Clusters
-        std::shared_ptr<BsCluster>* blocks;
-        ///The data (which is canonically right after the last Cluster) with the length of blockCount * blockSize
-        ///Pls dont tamper with this data directly as it has to be at the same index as its paired cluster
-        std::shared_ptr<unsigned char> dataPtr;
-};
 #endif

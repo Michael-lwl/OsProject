@@ -20,6 +20,8 @@ class DataBlock : public Block {
         ///Returns the data that is contained in this DataBlock
         Array getData() override;
 
+        unsigned char status;
+
     private:
         unsigned char* data;
 

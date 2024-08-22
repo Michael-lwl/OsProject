@@ -1,9 +1,10 @@
 #ifndef INDIRECT_BLOCKS_H
 #define INDIRECT_BLOCKS_H
 
-#include "block.h"
-#include "data_block.h"
+#include "./block.h"
+#include "./data_block.h"
 #include <ctime>
+#include <memory>
 #include <sys/types.h>
 
 class IndirectBlock: public Block {
@@ -19,6 +20,8 @@ class IndirectBlock: public Block {
         //Getter and Setter
         ///Returns the maximum capacity of this IndirectBlock
         unsigned int getMaximumCapacity() const {return maximumCapacity;}
+
+        virtual bool appendDataBlock(std::shared_ptr<DataBlock> db) = 0 ;
 
     protected:
         ///Returns the current capacity of this IndirectBlock
@@ -43,7 +46,7 @@ class FirstIndirectBlock : public IndirectBlock {
 
         ~FirstIndirectBlock() {
             // Explicitly call the destructor for each DataBlock
-            for (size_t i = 0; i < getBlockSize(); i++) {
+            for (size_t i = 0; i < BLOCK_SIZE; i++) {
                 if (blocks[i] != nullptr) {
                     blocks[i]->~DataBlock();
                 }
@@ -52,6 +55,7 @@ class FirstIndirectBlock : public IndirectBlock {
 
         bool setData(Array* data) override;
         Array getData() override;
+        bool appendDataBlock(std::shared_ptr<DataBlock> db) override;
 
     private:
         DataBlock** blocks;
@@ -69,7 +73,7 @@ class SecondIndirectBlock : public IndirectBlock {
 
         ~SecondIndirectBlock() {
             // Explicitly call the destructor for each DataBlock
-            const size_t blockSize = getBlockSize();
+            const size_t blockSize = BLOCK_SIZE;
             for (size_t i = 0; i < blockSize; i++) {
                 (blocks + (i * blockSize))->~FirstIndirectBlock();
             }
@@ -77,6 +81,7 @@ class SecondIndirectBlock : public IndirectBlock {
 
         bool setData(Array* data) override;
         Array getData() override;
+        bool appendDataBlock(std::shared_ptr<DataBlock> db) override;
 
     private:
         FirstIndirectBlock* blocks;
@@ -95,7 +100,7 @@ class ThirdIndirectBlock : public IndirectBlock {
 
         ~ThirdIndirectBlock() {
             // Explicitly call the destructor for each DataBlock
-            const size_t blockSize = getBlockSize();
+            const size_t blockSize = BLOCK_SIZE;
             const size_t blockSizeSq = blockSize * blockSize;
             for (size_t i = 0; i < blockSize; i++) {
                 (blocks + (i * blockSizeSq))->~SecondIndirectBlock();
@@ -104,6 +109,7 @@ class ThirdIndirectBlock : public IndirectBlock {
 
         bool setData(Array* data) override;
         Array getData() override;
+        bool appendDataBlock(std::shared_ptr<DataBlock> db) override;
 
     private:
         SecondIndirectBlock* blocks;

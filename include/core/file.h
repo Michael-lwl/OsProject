@@ -54,9 +54,9 @@ class File {
         }
 
     protected:
-        ///Resizes this file if newFileSize < this->getFileSizeInBytes()
+        ///Resizes this file if newFileSize < this->getFileSizeInBytes(). It should call setFileSizeInBytes()!
         virtual bool trimToSize(unsigned long newFileSize) = 0;
-        ///Resizes this file if this->getFileSizeInBytes() < newFileSize
+        ///Resizes this file if this->getFileSizeInBytes() < newFileSize. It should call setFileSizeInBytes()!
         virtual bool expandToSize(unsigned long newFileSize) = 0;
 
         //Special getter and setter

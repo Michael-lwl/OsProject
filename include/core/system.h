@@ -2,6 +2,7 @@
 #include "./states.h"
 #include "./file.h"
 #include <exception>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <sys/types.h>
@@ -10,7 +11,10 @@
 class System {
 
     public:
-        System(Data* dataHandler, size_t driveSize){
+
+        const size_t BLOCK_SIZE;
+
+        System(Data* dataHandler, size_t driveSize, size_t blockSize): BLOCK_SIZE(blockSize){
             if (dataHandler == nullptr) {
                 throw std::exception();
             }
@@ -38,6 +42,12 @@ class System {
         ///Returns a the file associated with the specified path.
         ///Might return null!
         virtual std::shared_ptr<File> getFile(std::string* filePath) = 0;
+        ///Returns the disks fragmentation.
+        ///Please return 0, if defragmentation is not necessary in the filesystem.
+        virtual float getFragmentation() = 0;
+        ///Defragments the disk. Returns true if it ran successfully!
+        ///Please also return true, if defragmentation is not necessary in the filesystem.
+        virtual bool defragDisk() = 0;
         ///Returns the space the data will occupy after "Encoding" it with this systems DataHandler
         inline unsigned long calcTotalSize(Array* data) {
             const unsigned long dataLength = getDataHandler()->getDataLength();

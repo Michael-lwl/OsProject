@@ -2,6 +2,7 @@
 #include "./../../../include/feature/inode/indirect_blocks.h"
 #include <cstring>
 #include <iostream>
+#include <memory>
 
 /*
 This Implements the setData(Array* data) methods for all (non-Abstract) Blocks
@@ -9,20 +10,21 @@ This Implements the setData(Array* data) methods for all (non-Abstract) Blocks
 
 bool DataBlock::setData(Array *data) {
   const unsigned int dataLen = data->getLength();
-  if (dataLen > getBlockSize()) {
+  if (dataLen > BLOCK_SIZE) {
     std::cerr << "Cannot save data in this block: Capacity is too small!"
               << std::endl;
     return false;
   }
   std::strncpy((char *)this->data, (const char *)data, dataLen);
-  for (unsigned int i = dataLen + 1; i < getBlockSize(); i++) {
+  for (unsigned int i = dataLen + 1; i < BLOCK_SIZE; i++) {
     this->data[i] = 0;
   }
   return true;
 }
 
 Array DataBlock::getData() {
-    
+    //TODO: Implement the method!
+    return new Array((unsigned int) 0);
 }
 
 bool FirstIndirectBlock::setData(Array *data) {
@@ -33,7 +35,7 @@ bool FirstIndirectBlock::setData(Array *data) {
         << std::endl;
     return false;
   }
-  const unsigned int blockLen = this->getBlockSize();
+  const unsigned int blockLen = this->BLOCK_SIZE;
   Array dataSlice = nullptr;
   unsigned int offset = 0;
   unsigned int curSize = maxSize;
@@ -47,7 +49,7 @@ bool FirstIndirectBlock::setData(Array *data) {
                             MemAllocation::DONT_DELETE);
     }
     if (this->blocks[i] == nullptr) {
-        this->blocks[i] = new DataBlock(getBlockSize());
+        this->blocks[i] = new DataBlock(BLOCK_SIZE);
     }
     if (!this->blocks[i]->setData(&dataSlice)) {
       std::cerr << "Cannot save data in DataBlock " << i << std::endl;
@@ -62,7 +64,13 @@ bool FirstIndirectBlock::setData(Array *data) {
 }
 
 Array FirstIndirectBlock::getData() {
-    
+    //TODO: Implement the method!
+    return new Array((unsigned int) 0);
+}
+
+bool FirstIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
+    //TODO: implement the method!
+    return false;
 }
 
 bool SecondIndirectBlock::setData(Array *data) {
@@ -73,7 +81,7 @@ bool SecondIndirectBlock::setData(Array *data) {
               << std::endl;
     return false;
   }
-  const unsigned int blockLen = this->getBlockSize();
+  const unsigned int blockLen = this->BLOCK_SIZE;
   Array dataSlice = nullptr;
   unsigned int offset = 0;
   unsigned int curSize = maxSize;
@@ -97,7 +105,13 @@ bool SecondIndirectBlock::setData(Array *data) {
 }
 
 Array SecondIndirectBlock::getData() {
-    
+    //TODO: Implement the method!
+    return new Array((unsigned int) 0);
+}
+
+bool SecondIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
+    //TODO: implement the method!
+    return false;
 }
 
 bool ThirdIndirectBlock::setData(Array *data) {
@@ -108,7 +122,7 @@ bool ThirdIndirectBlock::setData(Array *data) {
         << std::endl;
     return false;
   }
-  const unsigned int blockLen = this->getBlockSize();
+  const unsigned int blockLen = this->BLOCK_SIZE;
   Array dataSlice = nullptr;
   unsigned int offset = 0;
   unsigned int curSize = maxSize;
@@ -132,5 +146,11 @@ bool ThirdIndirectBlock::setData(Array *data) {
 }
 
 Array ThirdIndirectBlock::getData() {
-    
+    //TODO: Implement the method!
+    return new Array((unsigned int) 0);
+}
+
+bool ThirdIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
+    //TODO: implement the method!
+    return false;
 }

@@ -21,7 +21,7 @@ bool INodeSystem::deleteFile(std::string *filePath) {
 unsigned long INodeSystem::getFreeSpace() {
   size_t count = 0;
   for (size_t i = 0; i < this->iNodeCount; i++) {
-    if (this->iNodes[i].getFileSizeInBytes() > 0) {
+    if (this->iNodes[i]->getFileSizeInBytes() > 0) {
       count++;
     }
   }
@@ -31,7 +31,7 @@ unsigned long INodeSystem::getFreeSpace() {
   }
   count = this->getDriveSize();
   for (size_t i = 0; i < this->iNodeCount; i++) {
-    count -= this->iNodes[i].getFileSizeInBytes();
+    count -= this->iNodes[i]->getFileSizeInBytes();
   }
   return count;
 }
@@ -40,7 +40,7 @@ unsigned long INodeSystem::getFreeSpace() {
 unsigned long INodeSystem::getFileCount() {
   unsigned long count = 0;
   for (size_t i = 0; i < this->iNodeCount; i++) {
-    if (this->iNodes[i].getFileSizeInBytes() > 0) {
+    if (this->iNodes[i]->getFileSizeInBytes() > 0) {
       count++;
     }
   }
@@ -75,8 +75,8 @@ std::shared_ptr<File> INodeSystem::createFile(std::string *filePath,
 
   shared_ptr<INode> inode = nullptr;
   for (size_t i = 0; i < iNodeCount; i++) {
-    if ((iNodes + i)->getFlags() == 0) {
-      inode = make_shared<INode>(iNodes + i);
+    if (iNodes[i]->getFlags() == 0) {
+      inode = iNodes[i];
       break;
     }
   }
@@ -147,8 +147,10 @@ std::shared_ptr<File> INodeSystem::getFile(std::string *filePath) {
 /// TODO: Fix the std::make_shared functions!
 std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
   using namespace std;
-  INode *inode = this->iNodes + iNodeId;
-  shared_ptr<INode> file = make_shared<INode>(inode);
+  if (iNodeId > iNodeCount) {
+      return nullptr;
+  }
+  shared_ptr<INode> file = this->iNodes[iNodeId];
   if (!Directory::isDirectory(file.get())) {
     return static_pointer_cast<File>(file);
   }
@@ -157,6 +159,33 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
       static_pointer_cast<INodeDirectory>(file);
   shared_ptr<Directory> dir = static_pointer_cast<Directory>(inodeDir);
   return static_pointer_cast<File>(dir);
+}
+
+float INodeSystem::getFragmentation() {
+    //TODO: Implement the function!
+    return 0.0f;
+}
+
+bool INodeSystem::defragDisk() {
+    //TODO: Implement the function!
+    return true;
+}
+
+std::shared_ptr<DataBlock> INodeSystem::getNewDataBlock() {
+  ///TODO: Maybe remove status and revisit this function
+  std::shared_ptr<DataBlock> output = nullptr;
+  unsigned int initialOffset = rand() % dataBlockCount;
+  unsigned int offset = initialOffset;
+  do {
+    output = dataBlocks[offset++];
+    if (offset >= dataBlockCount)
+      offset = 0;
+  } while (output->status != Status::FREE && offset != initialOffset);
+
+  if (output->status != Status::FREE) {
+    return nullptr;
+  }
+  return output;
 }
 
 std::shared_ptr<File> INodeSystem::getRoot() {
