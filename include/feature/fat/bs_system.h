@@ -70,12 +70,7 @@ class BsFat : public System
 
         void showFat();
 
-        ~BsFat() {
-            for (unsigned int i = 0; i < blockCount; i++) {
-                BsCluster* cluster = getCluster(i);
-                cluster->~BsCluster();
-            }
-        }
+        ~BsFat() = default;
 
         void delFile(long index);
         void setBlocks(std::shared_ptr<BsFile> newFile);
@@ -182,16 +177,10 @@ class BsFile : public virtual File {
         }
         ///Creates an empty BsFile (Reserves 0 Bytes of spacec)
         BsFile(BsFat* fileSystem, std::string* filePath, unsigned char flags): BsFile(fileSystem, filePath, flags, 0) {
-            if (this->getFileSizeInBytes()) {
-                trimToSize(0);
-            }
+            trimToSize(0);
         }
 
-        ~BsFile() {
-            freeFile();
-            filesystem = nullptr;
-            clusterCount = 0;
-        }
+        ~BsFile() = default;
 
         bool setData(Array* data) override;
         std::unique_ptr<Array> getData() override;
