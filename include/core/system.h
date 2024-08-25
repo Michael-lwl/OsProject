@@ -1,6 +1,7 @@
 #include "./data.h"
 #include "./states.h"
 #include "./file.h"
+#include "directory.h"
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -55,6 +56,9 @@ class System {
             const unsigned long iterations = data->getLength() / dataLength;
             return iterations * totalLength;
         };
+
+        // template <typename T>
+        // std::shared_ptr<T> getChild(std::shared_ptr<Directory> directory, const std::string &filename);
 
         //Getter and setter
         ///Returns this Systems DataHandler (Primary used for encoding a file)

@@ -15,6 +15,8 @@ enum MemAllocation {
 class Array {
     public:
 
+        static Array EMPTY_ARRAY;
+
         ///Copy-Constructor
         Array(Array* array) {
             len = array->getLength();

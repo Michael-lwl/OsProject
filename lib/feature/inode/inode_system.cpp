@@ -1,7 +1,9 @@
 #include "./../../../include/feature/inode/inode_system.h"
+#include <cassert>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <type_traits>
 #include <vector>
 
 /// Deletes the file with the specified path, and only the specified file
@@ -11,7 +13,7 @@ bool INodeSystem::deleteFile(std::string *filePath) {
     std::cerr << "File \"" << filePath << "\" does not exist!" << std::endl;
     return false;
   }
-  INode *file = static_cast<INode *>(mFile.get());
+  INode *file = dynamic_cast<INode *>(mFile.get());
   file->resizeFile(0);
   file->setFlags(0);
   return true;
@@ -104,7 +106,7 @@ bool INodeSystem::saveInFile(std::string *filePath,
   bool output = file->setData(data.get());
   if (output) {
     time_t now_t_t = getCurrentTime();
-    std::static_pointer_cast<INode>(file)->setMtime(now_t_t);
+    std::dynamic_pointer_cast<INode>(file)->setMtime(now_t_t);
   }
   return output;
 }
@@ -131,24 +133,24 @@ std::shared_ptr<File> INodeSystem::getFile(std::string *filePath) {
       return nullptr;
     }
     // TODO: is this legal
-    curFile = getChild(static_pointer_cast<Directory>(curFile), f);
+    shared_ptr<Directory> dir = static_pointer_cast<INodeDirectory>(static_pointer_cast<INode>(curFile));
+    curFile = getChild(dir, f);
     if (curFile == nullptr) {
       return nullptr;
     }
   }
   time_t now_t_t = getCurrentTime();
-  static_pointer_cast<INode>(curFile)->setAtime(now_t_t);
+  dynamic_pointer_cast<INode>(curFile)->setAtime(now_t_t);
 
   return curFile;
 }
 
 /// Returns the file with the INodes' id.
 /// Might return null!
-/// TODO: Fix the std::make_shared functions!
 std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
   using namespace std;
   if (iNodeId > iNodeCount) {
-      return nullptr;
+    return nullptr;
   }
   shared_ptr<INode> file = this->iNodes[iNodeId];
   if (!Directory::isDirectory(file.get())) {
@@ -162,17 +164,17 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
 }
 
 float INodeSystem::getFragmentation() {
-    //TODO: Implement the function!
-    return 0.0f;
+  // TODO: Implement the function!
+  return 0.0f;
 }
 
 bool INodeSystem::defragDisk() {
-    //TODO: Implement the function!
-    return true;
+  // TODO: Implement the function!
+  return true;
 }
 
 std::shared_ptr<DataBlock> INodeSystem::getNewDataBlock() {
-  ///TODO: Maybe remove status and revisit this function
+  /// TODO: Maybe remove status and revisit this function
   std::shared_ptr<DataBlock> output = nullptr;
   unsigned int initialOffset = rand() % dataBlockCount;
   unsigned int offset = initialOffset;

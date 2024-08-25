@@ -14,14 +14,10 @@ class File {
         File(const std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes) {
             this->filePath = filePath;
             this->flags = flags;
-            fileSizeInBytes = reservedSpaceInBytes;
+            (void) reservedSpaceInBytes;
         }
 
-        virtual ~File() {
-            delete filePath;
-            flags = 0;
-            fileSizeInBytes = 0;
-        }
+        virtual ~File() = default;
 
         ///Saves the data to the file, tries to reserve more space if needed, might resize to less space
         ///Might manipulate the data depending on the implementation of the files' system
@@ -40,7 +36,7 @@ class File {
         //Getter and setter
 
         ///Returns the reserved space for this file
-        unsigned long getFileSizeInBytes() const {return fileSizeInBytes;}
+        virtual unsigned long getFileSizeInBytes() = 0;
         ///Sets this files' flags
         void setFlags(unsigned char newFlags) {flags = newFlags;}
         ///Returns this files' flags
@@ -62,11 +58,10 @@ class File {
         //Special getter and setter
 
         ///Setter for the the file size, should be used as the last call in functions like trimToSize or expandToSize
-        void setFileSizeInBytes(unsigned long newFileSizeInBytes) {fileSizeInBytes = newFileSizeInBytes;}
+        virtual void setFileSizeInBytes(unsigned long newFileSizeInBytes)  = 0;
 
     private:
 
-        unsigned long fileSizeInBytes;
         ///Flags like SYSTEM, ASCII, IS_TEMP, IS_DIR
         unsigned char flags;
         const std::string* filePath;

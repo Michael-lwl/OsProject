@@ -56,7 +56,7 @@ std::unique_ptr<Array> INode::getData() {
   unique_ptr<Array> data = make_unique<Array>(this->getFileSizeInBytes());
   size_t dataLen = data->getLength();
   if (dataLen == 0) {
-      return data;
+    return data;
   }
   size_t interval = this->datablocks[0]->BLOCK_SIZE;
   size_t counter = 0;
@@ -117,17 +117,35 @@ std::unique_ptr<Array> INode::getData() {
 
 bool INode::trimToSize(unsigned long newFileSize) {
   if (getFileSizeInBytes() < newFileSize)
-      return false;
+    return false;
   if (newFileSize == getFileSizeInBytes())
-      return true;
-
+    return true;
 
   unsigned long plusOne = (newFileSize % system->BLOCK_SIZE != 0 ? 1 : 0);
-  unsigned long newClusterCount = (newFileSize / (system->BLOCK_SIZE)) + (plusOne);
+  unsigned long newBlockCount =
+      (newFileSize / (system->BLOCK_SIZE)) + (plusOne);
 
+  IndirectBlock *indirBlocks[3] =
+  { &firstIndirectionBlock,
+    &secondIndirectionBlock,
+    &thirdIndirectionBlock };
 
-  //TODO: actually trim file
+  if (newBlockCount < DIRECT_DATA_BLOCK_COUNT) {
+    for (size_t i = newBlockCount; i < DIRECT_DATA_BLOCK_COUNT; i++) {
+      if (datablocks[i] != nullptr) {
+        datablocks[i]->setData(&Array::EMPTY_ARRAY);
+        datablocks[i] = nullptr;
+      }
+    }
+    for (IndirectBlock* indirBlock : indirBlocks){
+        indirBlock->setData(&Array::EMPTY_ARRAY);
+    }
+  }
 
+  if (newBlockCount < firstIndirectionBlock.getMaximumCapacity()) {
+
+  } else if (newBlockCount < secondIndirectionBlock.getMaximumCapacity()) {
+  }
 
   return true;
 }
@@ -157,7 +175,7 @@ bool INode::expandToSize(unsigned long newFileSize) {
       return false;
     }
     if (!appendDataBlock(newDataBlock)) {
-        return false;
+      return false;
     }
     remainingSize -= interval;
   }
@@ -214,6 +232,8 @@ std::vector<INode *> INodeDirectory::getChildren() {
 
 bool INodeDirectory::addChild(std::shared_ptr<File> file) {
   DirectoryEntry de = {(size_t)file.get(), *file->getFilePath()};
+  size_t newSize = INode::getFileSizeInBytes() + sizeof(de);
+  this->INode::setFileSizeInBytes(newSize);
   this->files.push_back(de);
   return true;
 }

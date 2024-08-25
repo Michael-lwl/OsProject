@@ -150,10 +150,12 @@ class BsFat : public System
         std::shared_ptr<BsFile> files[MAX_FILE_COUNT];
 };
 
-class BsFile : public File {
+class BsFile : public virtual File {
     public:
 
-        BsFile(BsFat* fileSystem, std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes): File(filePath, flags, reservedSpaceInBytes) {
+        BsFile(BsFat* fileSystem, std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes):
+                File(filePath, flags, reservedSpaceInBytes) {
+            fileSizeInBytes = reservedSpaceInBytes;
             filesystem = fileSystem;
             if (reservedSpaceInBytes == 0) return;
             fileStart = fileSystem->getNewCluster();
@@ -199,15 +201,19 @@ class BsFile : public File {
         BsFat* getFileSystem() const {return filesystem;}
         unsigned int getClusterCount() const {return clusterCount;}
 
+        unsigned long getFileSizeInBytes() override {return fileSizeInBytes;}
+
     protected:
         bool trimToSize(unsigned long newFileSize) override;
         bool expandToSize(unsigned long newFileSize) override;
+        void setFileSizeInBytes(size_t newFileSize) override {fileSizeInBytes = newFileSize;};
 
     private:
 
         ///Sets all used clusters to empty clusters (does not empty the data)
         void freeFile();
         void removeAllClusters(BsCluster* startCluster);
+        unsigned int fileSizeInBytes;
         BsFat* filesystem;
         ///The first cluster for this file
         BsCluster* fileStart;

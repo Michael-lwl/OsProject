@@ -14,8 +14,8 @@ class IndirectBlock: public Block {
             this->currentCapacity = 0;
         }
 
-        bool setData(Array* data) override;
-        Array getData() override;
+        virtual bool setData(Array* data) override = 0;
+        virtual Array getData() override = 0;
 
         //Getter and Setter
         ///Returns the maximum capacity of this IndirectBlock

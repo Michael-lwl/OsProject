@@ -19,13 +19,15 @@ class Directory: public File {
         Directory(std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes): File(filePath, flags, reservedSpaceInBytes) {
         }
 
+        virtual ~Directory() = default;
+
         ///Does not work on a Directory!
-        bool setData(Array* data) {
+        bool setData(Array* data) override {
             (void) data;
             return false;
         };
         ///Returns the actual data, without the file's system's implementation of data saving
-        virtual std::unique_ptr<Array> getData() = 0;
+        virtual std::unique_ptr<Array> getData() override = 0;
         ///Does not work on a Directory!
         bool resizeFile(unsigned long newFileSize) {
             (void) newFileSize;
@@ -40,9 +42,15 @@ class Directory: public File {
 
     protected:
         ///Does not work on Directory!
-        bool trimToSize(unsigned long newFileSize);
+        virtual bool trimToSize(unsigned long newFileSize) override {
+            (void) newFileSize;
+            return false;
+        };
         ///Does not work on Directory!
-        bool expandToSize(unsigned long newFileSize);
+        virtual bool expandToSize(unsigned long newFileSize) override {
+            (void) newFileSize;
+            return false;
+        };
 
     private:
 

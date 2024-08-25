@@ -23,8 +23,9 @@ bool DataBlock::setData(Array *data) {
 }
 
 Array DataBlock::getData() {
-    //TODO: Implement the method!
-    return new Array((unsigned int) 0);
+  Array output = new Array(BLOCK_SIZE);
+  std::strncpy((char *)output.getArray(), (const char *)this->data, BLOCK_SIZE);
+  return output;
 }
 
 bool FirstIndirectBlock::setData(Array *data) {
@@ -34,6 +35,16 @@ bool FirstIndirectBlock::setData(Array *data) {
         << "Cannot save data in this FirstIndirectBlock: Capacity is too small!"
         << std::endl;
     return false;
+  }
+  if (maxSize == 0) {//To clear the data, we take a array with size 0
+      Array* emptyData = new Array(BLOCK_SIZE);
+      for (size_t i = 0; i < getCurrentCapacity(); i++) {
+          if (this->blocks[i] != nullptr) {
+              this->blocks[i]->setData(emptyData);
+              this->blocks[i] = nullptr;
+          }
+      }
+      return true;
   }
   const unsigned int blockLen = this->BLOCK_SIZE;
   Array dataSlice = nullptr;
@@ -49,7 +60,7 @@ bool FirstIndirectBlock::setData(Array *data) {
                             MemAllocation::DONT_DELETE);
     }
     if (this->blocks[i] == nullptr) {
-        this->blocks[i] = new DataBlock(BLOCK_SIZE);
+      this->blocks[i] = new DataBlock(BLOCK_SIZE);
     }
     if (!this->blocks[i]->setData(&dataSlice)) {
       std::cerr << "Cannot save data in DataBlock " << i << std::endl;
@@ -64,13 +75,27 @@ bool FirstIndirectBlock::setData(Array *data) {
 }
 
 Array FirstIndirectBlock::getData() {
-    //TODO: Implement the method!
-    return new Array((unsigned int) 0);
+  size_t cap = getCurrentCapacity();
+  size_t countBlocks = cap / BLOCK_SIZE;
+  Array output = new Array(cap);
+  char *curP = (char *)output.getArray();
+  for (size_t i = 0; i < countBlocks; i++) {
+    std::strncpy(curP, (const char *)this->blocks[i]->getData().getArray(),
+                 BLOCK_SIZE);
+    curP += BLOCK_SIZE;
+  }
+
+  return output;
 }
 
 bool FirstIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
-    //TODO: implement the method!
+  size_t curCap = this->getCurrentCapacity();
+  if (curCap >= this->getMaximumCapacity()) {
     return false;
+  }
+  this->blocks[curCap] = block.get();
+  this->setCurrentCapacity(curCap + 1);
+  return true;
 }
 
 bool SecondIndirectBlock::setData(Array *data) {
@@ -81,6 +106,12 @@ bool SecondIndirectBlock::setData(Array *data) {
               << std::endl;
     return false;
   }
+  if (maxSize == 0) {//To clear the data, we take a array with size 0
+      for (size_t i = 0; i < getCurrentCapacity(); i++) {
+          this->blocks[i].setData(&Array::EMPTY_ARRAY);
+      }
+      return true;
+  }
   const unsigned int blockLen = this->BLOCK_SIZE;
   Array dataSlice = nullptr;
   unsigned int offset = 0;
@@ -88,9 +119,11 @@ bool SecondIndirectBlock::setData(Array *data) {
   unsigned int i = 0;
   while (curSize > 0 && offset < maxSize && i < blockLen) {
     if (curSize >= blockLen) {
-      dataSlice = new Array(blockLen, data->getArray() + offset, MemAllocation::DONT_DELETE);
+      dataSlice = new Array(blockLen, data->getArray() + offset,
+                            MemAllocation::DONT_DELETE);
     } else {
-      dataSlice = new Array(curSize, data->getArray() + offset, MemAllocation::DONT_DELETE);
+      dataSlice = new Array(curSize, data->getArray() + offset,
+                            MemAllocation::DONT_DELETE);
     }
     if (!(this->blocks[i].setData(&dataSlice))) {
       std::cerr << "Cannot save data in FirstIndirectBlock " << i << std::endl;
@@ -105,13 +138,29 @@ bool SecondIndirectBlock::setData(Array *data) {
 }
 
 Array SecondIndirectBlock::getData() {
-    //TODO: Implement the method!
-    return new Array((unsigned int) 0);
+  size_t cap = getCurrentCapacity();
+  size_t countBlocks = cap / BLOCK_SIZE;
+  Array output = new Array(cap);
+  char *curP = (char *)output.getArray();
+  for (size_t i = 0; i < countBlocks; i++) {
+    std::strncpy(curP, (const char *)this->blocks[i].getData().getArray(),
+                 BLOCK_SIZE);
+    curP += BLOCK_SIZE;
+  }
+
+  return output;
 }
 
 bool SecondIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
-    //TODO: implement the method!
+  size_t curCap = this->getCurrentCapacity();
+  if (curCap >= this->getMaximumCapacity()) {
     return false;
+  }
+  if (!this->blocks[curCap].appendDataBlock(block)) {
+    this->blocks[curCap + 1].appendDataBlock(block);
+  }
+  this->setCurrentCapacity(curCap + 1);
+  return true;
 }
 
 bool ThirdIndirectBlock::setData(Array *data) {
@@ -122,6 +171,12 @@ bool ThirdIndirectBlock::setData(Array *data) {
         << std::endl;
     return false;
   }
+  if (maxSize == 0) {//To clear the data, we take a array with size 0
+      for (size_t i = 0; i < getCurrentCapacity(); i++) {
+          this->blocks[i].setData(&Array::EMPTY_ARRAY);
+      }
+      return true;
+  }
   const unsigned int blockLen = this->BLOCK_SIZE;
   Array dataSlice = nullptr;
   unsigned int offset = 0;
@@ -129,9 +184,11 @@ bool ThirdIndirectBlock::setData(Array *data) {
   unsigned int i = 0;
   while (curSize > 0 && offset < maxSize && i < blockLen) {
     if (curSize >= blockLen) {
-      dataSlice = new Array(blockLen, data->getArray() + offset, MemAllocation::DONT_DELETE);
+      dataSlice = new Array(blockLen, data->getArray() + offset,
+                            MemAllocation::DONT_DELETE);
     } else {
-      dataSlice = new Array(curSize, data->getArray() + offset, MemAllocation::DONT_DELETE);
+      dataSlice = new Array(curSize, data->getArray() + offset,
+                            MemAllocation::DONT_DELETE);
     }
     if (!(this->blocks[i].setData(&dataSlice))) {
       std::cerr << "Cannot save data in SecondIndirectBlock " << i << std::endl;
@@ -146,11 +203,27 @@ bool ThirdIndirectBlock::setData(Array *data) {
 }
 
 Array ThirdIndirectBlock::getData() {
-    //TODO: Implement the method!
-    return new Array((unsigned int) 0);
+  size_t cap = getCurrentCapacity();
+  size_t countBlocks = cap / BLOCK_SIZE;
+  Array output = new Array(cap);
+  char *curP = (char *)output.getArray();
+  for (size_t i = 0; i < countBlocks; i++) {
+    std::strncpy(curP, (const char *)this->blocks[i].getData().getArray(),
+                 BLOCK_SIZE);
+    curP += BLOCK_SIZE;
+  }
+
+  return output;
 }
 
 bool ThirdIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
-    //TODO: implement the method!
+  size_t curCap = this->getCurrentCapacity();
+  if (curCap >= this->getMaximumCapacity()) {
     return false;
+  }
+  if (!this->blocks[curCap].appendDataBlock(block)) {
+    this->blocks[curCap + 1].appendDataBlock(block);
+  }
+  this->setCurrentCapacity(curCap + 1);
+  return true;
 }

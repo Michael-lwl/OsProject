@@ -31,7 +31,7 @@ class INode : public File {
                 this->numHardlinks = inode->getNumHardlinks();
                 this->uid = inode->getUid();
                 this->gid = inode->getGid();
-                this->fileSizeInBytes = inode->getfileSizeInBytes();
+                this->fileSizeInBytes = inode->getFileSizeInBytes();
                 this->mtime = inode->getMtime();
                 this->ctime = inode->getCtime();
                 this->atime = inode->getAtime();
@@ -87,7 +87,7 @@ class INode : public File {
         ///Sets the GroupID of this INode
         void setGid(unsigned long gid) {this->gid = gid;}
         ///Returns the Size of this file (excluding the size of the INode itself!)
-        unsigned long getfileSizeInBytes() {return fileSizeInBytes;}
+        unsigned long getFileSizeInBytes() override {return fileSizeInBytes;}
         ///Returns the last modification time of this INode
         ///(Will be automatically modified when calling saveFile()!)
         std::time_t getMtime() {return mtime;}
@@ -113,6 +113,7 @@ class INode : public File {
         bool trimToSize(unsigned long newFileSize) override;
         ///Resizes this file if this->getFileSizeInBytes() < newFileSize
         bool expandToSize(unsigned long newFileSize) override;
+        void setFileSizeInBytes(unsigned long newFileSize) override {fileSizeInBytes = newFileSize;};
 
     private:
         unsigned int flags;
@@ -141,8 +142,9 @@ struct INodeDirectory : public INode , public Directory {
     public:
 
         INodeDirectory(std::string* filePath, unsigned char flags, size_t fileSizeInBytes, size_t blockSize) :
+            // File(filePath, flags, fileSizeInBytes),
             INode(filePath, (flags | Flags::IS_DIR), fileSizeInBytes, blockSize),
-            Directory(filePath, (flags | Flags::IS_DIR)){
+            Directory(filePath, (flags | Flags::IS_DIR)) {
 
             }
 
@@ -153,13 +155,25 @@ struct INodeDirectory : public INode , public Directory {
         bool addChild(std::shared_ptr<File> file) override;
         bool removeChild(std::string filename) override;
 
-        bool setData(Array* data) override {return false;};
+        bool setData(Array* data) override {
+            (void) data;
+            return false;
+        };
         ///Returns an array of the saved DirectionEntries
         std::unique_ptr<Array> getData() override;
 
         ///Overload of the removeChild method.
         ///Uses the INodeId instead of the filename. *SHOULD* be faster
         bool removeChild(size_t childId);
+
+        bool trimToSize(size_t newSize) override {
+            (void) newSize;
+            return false;
+        };
+        bool expandToSize(size_t newSize) override {
+            (void) newSize;
+            return false;
+        };
 
     private:
         std::vector<DirectoryEntry> files;

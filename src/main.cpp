@@ -101,6 +101,8 @@ int test_BsFat() {
 const size_t STD_BLOCK_SIZE = 4 * getSizeInByte(ByteSizes::KB);
 
 int main(int argc, char **argv) {
+    (void) argc;
+    (void) argv;
   std::cerr << STD_BLOCK_SIZE << std::endl;
   /*unsigned char* FestePlatte;
   if (hasFile) {
