@@ -1,4 +1,5 @@
 #include "./../../../include/feature/fat/bs_system.h"
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -19,33 +20,16 @@ char BsFat::getCharForObjective(BsCluster *cluster)
     return output;
 }
 
-void BsFat::showFat() {
-
-    // "|" at the beginning + {<char> + "|"} per block, then '\0' for safety ;)
-    int strLen = (((sizeof(char) * this->getBlockCount()) + 1) << 1);
-    auto fatStatus = (char *)malloc(strLen);
-    if (fatStatus == nullptr){
-        std::cout << '|';
-        for (unsigned int i = 0; i < this->getBlockCount(); i++)
-        {
-            std::cout << this->getCharForObjective(this->getCluster(i));
-            std::cout << '|';
-        }
-        std::cout<<std::endl;
-        return;
-    }
-
-    fatStatus[0] = '|';
-    fatStatus[strLen] = 0;
-    int pStatus = 1;
+void BsFat::show() {
+    std::cout << colorize("|", Color::WHITE);
     for (unsigned int i = 0; i < this->getBlockCount(); i++)
     {
-        fatStatus[pStatus++] = BsFat::getCharForObjective(this->getCluster(i));
-        fatStatus[pStatus++] = '|';
+        BsCluster* c = this->getCluster(i);
+        std::string str{this->getCharForObjective(c)};
+        std::cout << colorize(str, getColorForStatus(c->status));
+        std::cout << '|';
     }
-
-    std::cout << fatStatus << std::endl;
-    safeFree(fatStatus);
+    std::cout<<std::endl;
 }
 
 
@@ -84,17 +68,12 @@ long BsFat::getBsFileIndexForPath(const std::string* path) {
 }
 
 bool BsFat::deleteFile(std::string* filePath) {
-    std::cout<<"deleteFile: 1"<<std::endl;
     if (filePathIsBlank(filePath))
         return false;
-    std::cout<<"deleteFile: 2"<<std::endl;
     auto f = getBsFileForPath(filePath);
-    std::cout<<"deleteFile: 3"<<std::endl;
     if (f == nullptr)
         return false;
-    std::cout<<"deleteFile: 4"<<std::endl;
     f.reset();
-    std::cout<<"deleteFile: 5"<<std::endl;
     return true;
 }
 
@@ -136,21 +115,17 @@ unsigned long BsFat::getFileSize(std::string* filePath) {
 std::shared_ptr<File> BsFat::createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) {
     using namespace std;
 
-    cout<<"is path blank?"<<endl;
     if (filePathIsBlank(filePath)) {
         cerr<<"Cannot create file \""<<filePath<<"\": Filepath cannot be empty!"<<endl;
         return nullptr;
     }
 
-    cout<<"exists path?"<<endl;
     if (getBsFileForPath(filePath) != nullptr) {
         cerr<<"Cannot create file \""<<filePath<<"\": File already exists!"<<endl;
         return nullptr;
     }
 
-    cout<<"Finding index!"<<endl;
     int index = getFirstFreeFileIndex();
-    cout<<"index: "<<index<<" was found!"<<endl;
     files[index] = make_shared<BsFile>(this, filePath, flags, fileSize);
     return files[index];
 }
@@ -266,7 +241,7 @@ bool BsFat::defragDisk() {
         for (BsCluster* cluster : file)
         {
             if (newIndex >= this->blockCount) {
-                std::cout<<"Error: newIndex is too high"<<std::endl;
+                std::cerr<<"Error: newIndex is too high"<<std::endl;
                 break;
             }
             while (this->getCluster(newIndex)->status == Status::CORRUPTED || this->getCluster(newIndex)->status == Status::RESERVED)

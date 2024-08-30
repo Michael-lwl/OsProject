@@ -31,44 +31,36 @@ class BsFat : public System
 {
 
     public:
-    // Factory function to allocate and construct BsFat with extra memory
-    static BsFat* create(unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
-        // Calculate number of blocks
-        unsigned long blockCount = driveSize / blockSize;
-
-        // Calculate the total size needed: BsFat object + BsCluster objects + data blocks
-        size_t totalSize = sizeof(BsFat) + blockCount * (sizeof(BsCluster) + blockSize);
-
-        // Allocate a block of memory large enough to hold BsFat + all data
-        void* memory = ::operator new(totalSize); // Raw allocation
-
-        // Use placement new to construct the BsFat object in the allocated memory
-        BsFat* bsFat = new (memory) BsFat(driveSize, blockSize, dataHandler, blockCount);
-
-        return bsFat;
-    }
-
-
-        static inline char getCharForStatus(char status)
-        {
-            switch (status)
-            {
-                case Status::RESERVED:
-                    return StatusChar::RESERVED_CHAR;
-                case Status::CORRUPTED:
-                    return StatusChar::CORRUPTED_CHAR;
-                case Status::FREE:
-                    return StatusChar::FREE_CHAR;
-                case Status::USED:
-                    return StatusChar::USED_CHAR;
-                default:
-                    return StatusChar::DEF_CHAR;
+        // Factory function to allocate and construct BsFat with extra memory
+        static BsFat* create(unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+            size_t bsFatSize = sizeof(BsFat);
+            if (driveSize <= bsFatSize) {
+                return nullptr;
             }
+
+            // Calculate the remaining space for BsCluster objects and data blocks
+            unsigned long remainingSpace = driveSize - bsFatSize;
+            size_t usedSpacePerBlock = sizeof(BsCluster) + blockSize;
+            unsigned long blockCount = remainingSpace / usedSpacePerBlock;
+            // If we cannot allocate any blocks, why should we allocate at all?
+            if (blockCount == 0) {
+                return nullptr;
+            }
+            // Totalsize is :  (BsFat + all clusters & data blocks)
+            size_t totalSize = bsFatSize + blockCount * usedSpacePerBlock;
+
+            // Allocate memory for the entire structure (BsFat + all clusters + data blocks)
+            void* memory = ::operator new(totalSize);  // Raw allocation
+
+            // Use placement new to construct the BsFat object in the allocated memory
+            BsFat* bsFat = new (memory) BsFat(driveSize, blockSize, dataHandler, blockCount);
+
+            return bsFat;
         }
 
         char getCharForObjective(BsCluster *cluster);
 
-        void showFat();
+        void show() override;
 
         ~BsFat() = default;
 
@@ -76,6 +68,7 @@ class BsFat : public System
         void setBlocks(std::shared_ptr<BsFile> newFile);
 
         //Overridden function
+        bool boot() override {return false;}
         bool deleteFile(std::string* filePath) override;
         unsigned long getFreeSpace() override;
         unsigned long getFileCount() override;
@@ -133,7 +126,7 @@ class BsFat : public System
                 cluster->next = nullptr;
                 cluster->data = getDataBlock(i);
             }
-            for (size_t i = 0; i < MAX_FILE_COUNT; ++i) {
+            for (size_t i = 0; i < MAX_FILE_COUNT; i++) {
                 files[i] = std::make_shared<BsFile>(this, nullptr, 0, 0);
             }
         }
