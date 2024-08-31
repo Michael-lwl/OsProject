@@ -33,6 +33,10 @@ enum ByteSizes {
   Terrabyte,
   /// One Terrabyte in Byte
   TB,
+  /// One Terrabyte in Byte
+  Tebibyte,
+  /// One Terrabyte in Byte
+  TiB,
 };
 
 inline unsigned long long getSizeInByte(ByteSizes size) {
@@ -60,6 +64,9 @@ inline unsigned long long getSizeInByte(ByteSizes size) {
   case Terrabyte:
   case TB:
     return 1000 * getSizeInByte(Gigabyte);
+  case Tebibyte:
+  case TiB:
+    return 1024 * getSizeInByte(Gibibyte);
   default:
     return getSizeInByte(ByteSizes::KB);
   }

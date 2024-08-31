@@ -30,7 +30,7 @@ Array DataBlock::getData() {
 
 bool FirstIndirectBlock::setData(Array *data) {
   unsigned int maxSize = data->getLength();
-  if (maxSize > this->getMaximumCapacity()) {
+  if (maxSize > BLOCK_SIZE * BLOCK_SIZE) {
     std::cerr
         << "Cannot save data in this FirstIndirectBlock: Capacity is too small!"
         << std::endl;
@@ -38,7 +38,7 @@ bool FirstIndirectBlock::setData(Array *data) {
   }
   if (maxSize == 0) {//To clear the data, we take a array with size 0
       Array* emptyData = new Array(BLOCK_SIZE);
-      for (size_t i = 0; i < getCurrentCapacity(); i++) {
+      for (size_t i = 0; i < getLength(); i++) {
           if (this->blocks[i] != nullptr) {
               this->blocks[i]->setData(emptyData);
               this->blocks[i] = nullptr;
@@ -70,12 +70,11 @@ bool FirstIndirectBlock::setData(Array *data) {
     curSize -= blockLen;
     offset += blockLen;
   }
-  this->setCurrentCapacity(data->getLength());
   return true;
 }
 
 Array FirstIndirectBlock::getData() {
-  size_t cap = getCurrentCapacity();
+  size_t cap = getLength();
   size_t countBlocks = cap / BLOCK_SIZE;
   Array output = new Array(cap);
   char *curP = (char *)output.getArray();
@@ -88,27 +87,26 @@ Array FirstIndirectBlock::getData() {
   return output;
 }
 
-bool FirstIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
-  size_t curCap = this->getCurrentCapacity();
-  if (curCap >= this->getMaximumCapacity()) {
+bool FirstIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) {
+  size_t curCap = this->getLength();
+  if (curCap >= BLOCK_SIZE * BLOCK_SIZE) {
     return false;
   }
-  this->blocks[curCap] = block.get();
-  this->setCurrentCapacity(curCap + 1);
+  this->blocks[curCap] = block;
   return true;
 }
 
 bool SecondIndirectBlock::setData(Array *data) {
   unsigned int maxSize = data->getLength();
-  if (maxSize > this->getMaximumCapacity()) {
+  if (maxSize > BLOCK_SIZE * BLOCK_SIZE * BLOCK_SIZE) {
     std::cerr << "Cannot save data in this SecondIndirectBlock: Capacity is "
                  "too small!"
               << std::endl;
     return false;
   }
   if (maxSize == 0) {//To clear the data, we take a array with size 0
-      for (size_t i = 0; i < getCurrentCapacity(); i++) {
-          this->blocks[i].setData(&Array::EMPTY_ARRAY);
+      for (size_t i = 0; i < this->getLength(); i++) {
+          this->blocks[i]->setData(&Array::EMPTY_ARRAY);
       }
       return true;
   }
@@ -125,7 +123,7 @@ bool SecondIndirectBlock::setData(Array *data) {
       dataSlice = new Array(curSize, data->getArray() + offset,
                             MemAllocation::DONT_DELETE);
     }
-    if (!(this->blocks[i].setData(&dataSlice))) {
+    if (!(this->blocks[i]->setData(&dataSlice))) {
       std::cerr << "Cannot save data in FirstIndirectBlock " << i << std::endl;
       return false;
     }
@@ -133,17 +131,16 @@ bool SecondIndirectBlock::setData(Array *data) {
     curSize -= blockLen;
     offset += blockLen;
   }
-  this->setCurrentCapacity(data->getLength());
   return true;
 }
 
 Array SecondIndirectBlock::getData() {
-  size_t cap = getCurrentCapacity();
+  size_t cap = this->getLength();
   size_t countBlocks = cap / BLOCK_SIZE;
   Array output = new Array(cap);
   char *curP = (char *)output.getArray();
   for (size_t i = 0; i < countBlocks; i++) {
-    std::strncpy(curP, (const char *)this->blocks[i].getData().getArray(),
+    std::strncpy(curP, (const char *)this->blocks[i]->getData().getArray(),
                  BLOCK_SIZE);
     curP += BLOCK_SIZE;
   }
@@ -151,29 +148,28 @@ Array SecondIndirectBlock::getData() {
   return output;
 }
 
-bool SecondIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
-  size_t curCap = this->getCurrentCapacity();
-  if (curCap >= this->getMaximumCapacity()) {
+bool SecondIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) {
+  size_t curCap = this->getLength();
+  if (curCap >= BLOCK_SIZE * BLOCK_SIZE * BLOCK_SIZE) {
     return false;
   }
-  if (!this->blocks[curCap].appendDataBlock(block)) {
-    this->blocks[curCap + 1].appendDataBlock(block);
+  if (!this->blocks[curCap]->appendDataBlock(block, system)) {
+    this->blocks[curCap + 1]->appendDataBlock(block, system);
   }
-  this->setCurrentCapacity(curCap + 1);
   return true;
 }
 
 bool ThirdIndirectBlock::setData(Array *data) {
   unsigned int maxSize = data->getLength();
-  if (maxSize > this->getMaximumCapacity()) {
+  if (maxSize > this->getLength()) {
     std::cerr
         << "Cannot save data in this ThirdIndirectBlock: Capacity is too small!"
         << std::endl;
     return false;
   }
   if (maxSize == 0) {//To clear the data, we take a array with size 0
-      for (size_t i = 0; i < getCurrentCapacity(); i++) {
-          this->blocks[i].setData(&Array::EMPTY_ARRAY);
+      for (size_t i = 0; i < BLOCK_SIZE * BLOCK_SIZE * BLOCK_SIZE; i++) {
+          this->blocks[i]->setData(&Array::EMPTY_ARRAY);
       }
       return true;
   }
@@ -190,7 +186,7 @@ bool ThirdIndirectBlock::setData(Array *data) {
       dataSlice = new Array(curSize, data->getArray() + offset,
                             MemAllocation::DONT_DELETE);
     }
-    if (!(this->blocks[i].setData(&dataSlice))) {
+    if (!(this->blocks[i]->setData(&dataSlice))) {
       std::cerr << "Cannot save data in SecondIndirectBlock " << i << std::endl;
       return false;
     }
@@ -198,17 +194,16 @@ bool ThirdIndirectBlock::setData(Array *data) {
     curSize -= blockLen;
     offset += blockLen;
   }
-  this->setCurrentCapacity(data->getLength());
   return true;
 }
 
 Array ThirdIndirectBlock::getData() {
-  size_t cap = getCurrentCapacity();
+  size_t cap = getLength();
   size_t countBlocks = cap / BLOCK_SIZE;
   Array output = new Array(cap);
   char *curP = (char *)output.getArray();
   for (size_t i = 0; i < countBlocks; i++) {
-    std::strncpy(curP, (const char *)this->blocks[i].getData().getArray(),
+    std::strncpy(curP, (const char *)this->blocks[i]->getData().getArray(),
                  BLOCK_SIZE);
     curP += BLOCK_SIZE;
   }
@@ -216,14 +211,13 @@ Array ThirdIndirectBlock::getData() {
   return output;
 }
 
-bool ThirdIndirectBlock::appendDataBlock(std::shared_ptr<DataBlock> block) {
-  size_t curCap = this->getCurrentCapacity();
-  if (curCap >= this->getMaximumCapacity()) {
+bool ThirdIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) {
+  size_t curCap = this->getLength();
+  if (curCap >= BLOCK_SIZE * BLOCK_SIZE * BLOCK_SIZE) {
     return false;
   }
-  if (!this->blocks[curCap].appendDataBlock(block)) {
-    this->blocks[curCap + 1].appendDataBlock(block);
+  if (!this->blocks[curCap]->appendDataBlock(block, system)) {
+    this->blocks[curCap + 1]->appendDataBlock(block, system);
   }
-  this->setCurrentCapacity(curCap + 1);
   return true;
 }

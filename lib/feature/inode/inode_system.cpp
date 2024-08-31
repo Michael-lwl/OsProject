@@ -75,7 +75,7 @@ std::shared_ptr<File> INodeSystem::createFile(std::string *filePath,
     return nullptr;
   }
 
-  shared_ptr<INode> inode = nullptr;
+  INode *inode = nullptr;
   for (size_t i = 0; i < iNodeCount; i++) {
     if (iNodes[i]->getFlags() == 0) {
       inode = iNodes[i];
@@ -92,7 +92,7 @@ std::shared_ptr<File> INodeSystem::createFile(std::string *filePath,
   inode->setCtime(now_t_t);
   inode->setAtime(now_t_t);
 
-  return inode;
+  return std::make_shared<INode>(inode);
 }
 
 /// Saves the content in the specified file, might resize it, if the reserved
@@ -133,7 +133,8 @@ std::shared_ptr<File> INodeSystem::getFile(std::string *filePath) {
       return nullptr;
     }
     // TODO: is this legal
-    shared_ptr<Directory> dir = static_pointer_cast<INodeDirectory>(static_pointer_cast<INode>(curFile));
+    Directory *dir =
+        static_cast<INodeDirectory *>(static_cast<INode *>(curFile.get()));
     curFile = getChild(dir, f);
     if (curFile == nullptr) {
       return nullptr;
@@ -152,13 +153,13 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
   if (iNodeId > iNodeCount) {
     return nullptr;
   }
-  shared_ptr<INode> file = this->iNodes[iNodeId];
-  if (!Directory::isDirectory(file.get())) {
-    return static_pointer_cast<File>(file);
+  INode *file = this->iNodes[iNodeId];
+  if (!Directory::isDirectory(file)) {
+    return std::static_pointer_cast<File>(std::make_shared<INode>(file));
   }
   // This is probably useless, but we try to force the output to be a directory
   shared_ptr<INodeDirectory> inodeDir =
-      static_pointer_cast<INodeDirectory>(file);
+      static_pointer_cast<INodeDirectory>(std::make_shared<INode>(file));
   shared_ptr<Directory> dir = static_pointer_cast<Directory>(inodeDir);
   return static_pointer_cast<File>(dir);
 }
@@ -173,13 +174,13 @@ bool INodeSystem::defragDisk() {
   return true;
 }
 
-std::shared_ptr<DataBlock> INodeSystem::getNewDataBlock() {
+DataBlock *INodeSystem::getNewDataBlock() {
   /// TODO: Maybe remove status and revisit this function
-  std::shared_ptr<DataBlock> output = nullptr;
+  DataBlock *output = nullptr;
   unsigned int initialOffset = rand() % dataBlockCount;
   unsigned int offset = initialOffset;
   do {
-    output = dataBlocks[offset++];
+    output = getDataBlock(offset++);
     if (offset >= dataBlockCount)
       offset = 0;
   } while (output->status != Status::FREE && offset != initialOffset);
@@ -194,11 +195,10 @@ std::shared_ptr<File> INodeSystem::getRoot() {
   return getFile(static_cast<unsigned long>(0));
 }
 
-std::shared_ptr<File>
-INodeSystem::getChild(std::shared_ptr<Directory> directory,
-                      const std::string &fileName) {
+std::shared_ptr<File> INodeSystem::getChild(Directory *directory,
+                                            const std::string &fileName) {
   using namespace std;
-  if (directory == nullptr || Directory::isDirectory(directory.get())) {
+  if (directory == nullptr || Directory::isDirectory(directory)) {
     cerr << "Error: The directory is invalid!" << endl;
     return nullptr;
   }
@@ -206,8 +206,7 @@ INodeSystem::getChild(std::shared_ptr<Directory> directory,
     cerr << "Error: The Filename is empty!" << endl;
     return nullptr;
   }
-  shared_ptr<INodeDirectory> iDir =
-      static_pointer_cast<INodeDirectory>(directory);
+  INodeDirectory *iDir = static_cast<INodeDirectory *>(directory);
   vector<INode *> iDirChildren = iDir->getChildren();
   for (auto inode : iDirChildren) {
     if (inode->getFilePath() == nullptr || inode->getFilePath()->empty()) {
@@ -221,4 +220,38 @@ INodeSystem::getChild(std::shared_ptr<Directory> directory,
   cerr << "The Directory does not contain the File \"" << fileName << "\"!"
        << endl;
   return nullptr;
+}
+
+char INodeSystem::getCharForObjective(DataBlock *db) {
+  char output = getCharForStatus(db->status);
+  if (output == StatusChar::USED_CHAR) {
+    for (unsigned int i = 0; i < iNodeCount; i++) {
+      if (iNodes[i]->getDatablocks()[0] == db)
+        output = i + '0';
+    }
+  } else if (output == StatusChar::DEF_CHAR) {
+    switch (db->status) {
+      case AdditionalStats::INDIRECT_1:
+        output = AdditionalStatsChars::INDIRECT_1_CHAR;
+        break;
+      case AdditionalStats::INDIRECT_2:
+        output = AdditionalStatsChars::INDIRECT_2_CHAR;
+        break;
+      case AdditionalStats::INDIRECT_3:
+        output = AdditionalStatsChars::INDIRECT_3_CHAR;
+        break;
+    }
+  }
+  return output;
+}
+
+void INodeSystem::show() {
+  std::cout << colorize("|", Color::WHITE);
+  for (unsigned int i = 0; i < this->dataBlockCount; i++) {
+    DataBlock *c = this->getDataBlock(i);
+    std::string str{this->getCharForObjective(c)};
+    std::cout << colorize(str, getColorForStatus(c->status));
+    std::cout << '|';
+  }
+  std::cout << std::endl;
 }

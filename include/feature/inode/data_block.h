@@ -7,12 +7,10 @@ class DataBlock : public Block {
     public:
 
         DataBlock(size_t size) : Block(size) {
-
+            data = new (static_cast<void*>(this + sizeof(DataBlock))) unsigned char[size];
         }
 
-        ~DataBlock() {
-
-        }
+        ~DataBlock() = default;
 
         ///Sets the data into this dataBlock.
         ///Returns false if the length of the data is longer than this Blocks' capacity'
@@ -21,8 +19,6 @@ class DataBlock : public Block {
         Array getData() override;
 
         unsigned char status;
-
-    private:
         unsigned char* data;
 
 

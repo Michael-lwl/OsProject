@@ -7,6 +7,7 @@
 #include "./../../core/directory.h"
 #include "./data_block.h"
 #include "./indirect_blocks.h"
+#include "./inode_sizes.h"
 #include <memory>
 #include <chrono>
 #include <ctime>
@@ -22,10 +23,7 @@ class INode : public File {
     public:
 
         ///Copy-constructor
-        INode(INode* inode): File(inode->getFilePath(), inode->getFlags(), inode->getFileSizeInBytes()),
-            firstIndirectionBlock(inode->getFirstIndirectionBlock().BLOCK_SIZE),
-            secondIndirectionBlock(inode->getFirstIndirectionBlock().BLOCK_SIZE),
-            thirdIndirectionBlock(inode->getFirstIndirectionBlock().BLOCK_SIZE)
+        INode(INode* inode): File(inode->getFilePath(), inode->getFlags(), inode->getFileSizeInBytes())
             {
                 this->flags = inode->getFlags();
                 this->numHardlinks = inode->getNumHardlinks();
@@ -35,6 +33,7 @@ class INode : public File {
                 this->mtime = inode->getMtime();
                 this->ctime = inode->getCtime();
                 this->atime = inode->getAtime();
+                this->system = inode->system;
                 // this->firstIndirectionBlock = inode->getFirstIndirectionBlock();
                 // this->secondIndirectionBlock = inode->getSecondIndirectionBlock();
                 // this->thirdIndirectionBlock = inode->getThirdIndirectionBlock();
@@ -42,10 +41,18 @@ class INode : public File {
                 for (size_t i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
                     datablocks[i] = iNodeDataBlocks[i];
                 }
+                if (inode->firstIndirectionBlock) {
+                    this->firstIndirectionBlock = inode->firstIndirectionBlock;
+                }
+                if (inode->secondIndirectionBlock) {
+                    this->secondIndirectionBlock = inode->secondIndirectionBlock;
+                }
+                if (inode->thirdIndirectionBlock) {
+                    this->thirdIndirectionBlock = inode->thirdIndirectionBlock;
+                }
         }
 
-        INode(std::string* filePath, unsigned char flags, size_t fileSizeInBytes, size_t blockSize): File(filePath, flags, fileSizeInBytes),
-            firstIndirectionBlock(blockSize), secondIndirectionBlock(blockSize), thirdIndirectionBlock(blockSize)
+        INode(std::string* filePath, unsigned char flags, size_t fileSizeInBytes, INodeSystem* system): File(filePath, flags, fileSizeInBytes)
             {
                 this->flags = flags;
                 numHardlinks = 0;
@@ -56,17 +63,16 @@ class INode : public File {
                 mtime = now_t_t;
                 ctime = now_t_t;
                 atime = now_t_t;
+                this->system = system;
         }
 
-        ~INode() {
-
-        }
+        ~INode() = default;
 
         bool setData(Array* data) override;
         ///Returns the actual data, without the file's system's implementation of data saving
         std::unique_ptr<Array> getData() override;
 
-        bool appendDataBlock(std::shared_ptr<DataBlock> db);
+        bool appendDataBlock(DataBlock* db);
 
 
         //Getter and Setter
@@ -104,9 +110,9 @@ class INode : public File {
         ///Sets the last Accessed-Time of this INode
         void setAtime(std::time_t atime) {this->atime = atime;}
         DataBlock** getDatablocks() {return datablocks;}
-        FirstIndirectBlock getFirstIndirectionBlock() const {return firstIndirectionBlock;}
-        SecondIndirectBlock getSecondIndirectionBlock() const {return secondIndirectionBlock;}
-        ThirdIndirectBlock getThirdIndirectionBlock() const {return thirdIndirectionBlock;}
+        FirstIndirectBlock* getFirstIndirectionBlock() const {return firstIndirectionBlock;}
+        SecondIndirectBlock* getSecondIndirectionBlock() const {return secondIndirectionBlock;}
+        ThirdIndirectBlock* getThirdIndirectionBlock() const {return thirdIndirectionBlock;}
 
     protected:
         ///Resizes this file if newFileSize < this->getFileSizeInBytes()
@@ -124,12 +130,12 @@ class INode : public File {
         std::time_t mtime;
         std::time_t ctime;
         std::time_t atime;
-        DataBlock* datablocks[DIRECT_DATA_BLOCK_COUNT];
-        FirstIndirectBlock firstIndirectionBlock;
-        SecondIndirectBlock secondIndirectionBlock;
-        ThirdIndirectBlock thirdIndirectionBlock;
-
         INodeSystem * system;
+        DataBlock* datablocks[DIRECT_DATA_BLOCK_COUNT];
+        FirstIndirectBlock* firstIndirectionBlock;
+        SecondIndirectBlock* secondIndirectionBlock;
+        ThirdIndirectBlock* thirdIndirectionBlock;
+
 };
 
 struct DirectoryEntry {
@@ -141,9 +147,9 @@ struct INodeDirectory : public INode , public Directory {
 
     public:
 
-        INodeDirectory(std::string* filePath, unsigned char flags, size_t fileSizeInBytes, size_t blockSize) :
+        INodeDirectory(std::string* filePath, unsigned char flags, size_t fileSizeInBytes, INodeSystem* system) :
             // File(filePath, flags, fileSizeInBytes),
-            INode(filePath, (flags | Flags::IS_DIR), fileSizeInBytes, blockSize),
+            INode(filePath, (flags | Flags::IS_DIR), fileSizeInBytes, system),
             Directory(filePath, (flags | Flags::IS_DIR)) {
 
             }
@@ -197,21 +203,79 @@ inline size_t mapToInodeSize(size_t driveSizeInByte) {
 
 class INodeSystem : public System {
     public:
-
-        INodeSystem(unsigned char* startPtr, Data *dataHandler, size_t driveSizeInBytes, size_t blockSize) :
-            System(dataHandler, driveSizeInBytes, blockSize) {
-        this->iNodeSize = mapToInodeSize(driveSizeInBytes);
-        this->iNodeCount = driveSizeInBytes/iNodeSize;
-        this->blockSize = blockSize;
-        for (size_t i = 0; i < iNodeCount; i++) {
-            //TODO: Verify that this works
-            INode tmp = new (iNodes + i) INode(nullptr, 0, 0, blockSize);
-            iNodes[i] = std::make_shared<INode>(tmp);
+        static size_t calculateInodeSize(size_t ptrSize) {
+            return sizeof(INode) + (DIRECT_DATA_BLOCK_COUNT * ptrSize);
         }
-        ///TODO: actually implement this!
-        // auto datablockStartPtr = startPtr + sizeof(INodeSystem) + (sizeof(INode) * iNodeCount);
 
-        // dataBlockCount = ;
+        static long long calculateNumberOfInodes(long long driveSizeNoOverhead, int inodeSize) {
+            // Step 1: Initial calculation of inodes
+            INodeSizes numberOfBytesPerInode = getBytesPerInode(driveSizeNoOverhead);
+            long long initialNumberOfInodes = driveSizeNoOverhead / numberOfBytesPerInode;
+
+            // Step 2: Calculate the space used by the inodes themselves
+            long long spaceUsedByInodes = initialNumberOfInodes * inodeSize;
+
+            // Step 3: Adjust the usable space by subtracting the space used by inodes
+            long long adjustedDriveSize = driveSizeNoOverhead - spaceUsedByInodes;
+
+            // Step 4: Recalculate the number of inodes based on the adjusted space
+            long long finalNumberOfInodes = adjustedDriveSize / numberOfBytesPerInode;
+
+            return finalNumberOfInodes;
+        }
+
+        static INodeSystem* create(unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+            size_t inodeSystemSize = sizeof(INodeSystem);
+            if (driveSize <= inodeSystemSize) {
+                return nullptr;
+            }
+            // Remaining space for inodes and their data blocks
+            unsigned long driveSizeNoOverhead = driveSize - inodeSystemSize;
+            INodeSizes numberOfBytesPerInode = getBytesPerInode(driveSize);
+            size_t inodeSize = calculateInodeSize(sizeof(DataBlock*));
+
+            size_t inodeCount = calculateNumberOfInodes(driveSizeNoOverhead, inodeSize);
+            // If we cannot allocate any blocks, why should we allocate at all?
+            if (inodeCount == 0) {
+                return nullptr;
+            }
+            size_t reservedSpaceForINodes = inodeCount * inodeSize;
+
+            size_t remainingDataBlocks = driveSizeNoOverhead - reservedSpaceForINodes;
+
+            std::cout << "-------------------------------------------------------"
+                          << "\nTotal size of drive:      " << driveSize
+                          << "\nUsable size of drive:     " << driveSizeNoOverhead
+                          << "\nINodeCount:               " << inodeCount
+                          << "\nINodeSize:                " << inodeSize
+                          << "\nSize of Space for INodes: " << reservedSpaceForINodes
+                          << "\nremainingDataBlocks size: " << remainingDataBlocks
+                          << "\nBytes covered per Inodes: " << numberOfBytesPerInode
+                          << "\n-------------------------------------------------------"
+                          << std::endl;
+
+            if (remainingDataBlocks < ((driveSize * 4) / 5)) {
+                std::cerr << "Error: calculated size of INodes is too big, drive wont be usable!" << std::endl;
+                return nullptr;
+            }
+
+            void* memory = ::operator new(driveSize);  // Raw memory allocation
+
+            INodeSystem* inodeSystem = new (memory) INodeSystem(driveSize, blockSize, dataHandler, inodeCount);
+
+            return inodeSystem;
+        }
+
+        INodeSystem(size_t driveSizeInBytes, size_t blockSize, Data* dataHandler, size_t iNodeCount) :
+            System(dataHandler, driveSizeInBytes, blockSize) ,
+            iNodeSize(mapToInodeSize(driveSizeInBytes)),iNodeCount(iNodeCount), dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize)
+            {
+                for (size_t i = 0; i < iNodeCount; i++) {
+                    new (iNodes + i) INode(nullptr, 0, 0, this);
+                }
+                for (size_t i = 0; i < dataBlockCount; i++) {
+                    new (getDataBlock(i)) DataBlock(BLOCK_SIZE);
+                }
         }
 
         ~INodeSystem() = default;
@@ -243,27 +307,39 @@ class INodeSystem : public System {
         float getFragmentation() override;
         bool defragDisk() override;
 
-        std::shared_ptr<DataBlock> getNewDataBlock();
+        DataBlock* getNewDataBlock();
 
-        // Getter and setter
-        /// Returns this Systems NULL_PTR
-        u_int64_t *NULL_PTR();
+        bool boot() override { return false;}
 
+        char getCharForObjective(DataBlock* block);
+
+        void show() override;
+
+        //Getter and Setter
+
+        size_t getBlockCount() {return dataBlockCount;}
+
+        // Getter for the data block associated with a specific BsCluster
+        DataBlock* getDataBlock(size_t blockIndex) {
+            if (blockIndex >= dataBlockCount) {
+                std::string bIStr = std::to_string(blockIndex);
+                throw std::out_of_range(std::string("DataBlockIndex ").append(bIStr).append(" out of bounds"));
+            }
+            return reinterpret_cast<DataBlock*>(reinterpret_cast<unsigned char*>(this) + sizeof(INodeSystem) + (iNodeCount * sizeof(INode)) + (blockIndex * BLOCK_SIZE));
+        }
+
+        const size_t iNodeSize;
+        const size_t iNodeCount;
+        const size_t dataBlockCount;
     private:
         /// Returns this Systems rootDirectory
         std::shared_ptr<File> getRoot();
 
-        std::shared_ptr<File> getChild(std::shared_ptr<Directory> directory,
+        std::shared_ptr<File> getChild(Directory* directory,
                                          const std::string &fileName);
 
-        size_t iNodeSize;
-        size_t iNodeCount;
-        size_t blockSize;
-        size_t driveSizeInBytes;
-        size_t dataBlockCount;
 
-        std::shared_ptr<INode>* iNodes;
-        std::shared_ptr<DataBlock>* dataBlocks;
+        INode* iNodes[];
 };
 
 #endif

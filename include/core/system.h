@@ -17,13 +17,13 @@ class System {
     public:
 
         const size_t BLOCK_SIZE;
+        const size_t DRIVE_SIZE;
 
-        System(Data* dataHandler, size_t driveSize, size_t blockSize): BLOCK_SIZE(blockSize){
+        System(Data* dataHandler, size_t driveSize, size_t blockSize): BLOCK_SIZE(blockSize), DRIVE_SIZE(driveSize){
             if (dataHandler == nullptr) {
                 throw std::exception();
             }
             this->dataHandler = dataHandler;
-            this->driveSize = driveSize;
         }
         virtual ~System() {
             delete dataHandler;
@@ -72,15 +72,10 @@ class System {
         ///WARNING: it doesnt change the saved file encodings by default, you *NEED* to implement it yourself!
         void setDataHandler(Data* data) {this->dataHandler = data;}
 
-        size_t getDriveSize() const {return driveSize;}
-
-    protected:
-        ///This Systems NULL_PTR
-        u_int16_t* NULL_PTR;
+        size_t getDriveSize() const {return DRIVE_SIZE;}
 
     private:
         Data* dataHandler;
-        size_t driveSize;
 
 };
 

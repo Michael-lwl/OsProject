@@ -37,3 +37,6 @@ bin/*
 # IDE folder
 .idea/*
 .vscode/*
+
+# Valgrind files
+*vgcore.*

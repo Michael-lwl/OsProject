@@ -10,17 +10,6 @@
 
 class INodeSystem;
 
-enum AdditionalStats {
-  INDIRECT_1 = 4,
-  INDIRECT_2 = 5,
-  INDIRECT_3 = 6
-};
-enum AdditionalStatsChars {
-  INDIRECT_1_CHAR = 'X',
-  INDIRECT_2_CHAR = 'Y',
-  INDIRECT_3_CHAR = 'Z'
-};
-
 class IndirectBlock {
 public:
   IndirectBlock() {}

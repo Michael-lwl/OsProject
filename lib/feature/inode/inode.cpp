@@ -34,8 +34,8 @@ bool INode::setData(Array *data) {
 
   /// This will be used for loop usage of getData
   IndirectBlock *indirBlocks[INDIRECTION_BLOCK_DEPTH] = {
-      &this->firstIndirectionBlock, &this->secondIndirectionBlock,
-      &this->thirdIndirectionBlock};
+      this->firstIndirectionBlock, this->secondIndirectionBlock,
+      this->thirdIndirectionBlock};
 
   for (size_t i = 0; i < INDIRECTION_BLOCK_DEPTH; i++) {
     remainingDataLen = dataLen - counter;
@@ -87,8 +87,8 @@ std::unique_ptr<Array> INode::getData() {
 
   /// This will be used for loop usage of getData
   IndirectBlock *indirBlocks[INDIRECTION_BLOCK_DEPTH] = {
-      &this->firstIndirectionBlock, &this->secondIndirectionBlock,
-      &this->thirdIndirectionBlock};
+      this->firstIndirectionBlock, this->secondIndirectionBlock,
+      this->thirdIndirectionBlock};
 
   for (size_t i = 0; i < INDIRECTION_BLOCK_DEPTH; i++) {
     Array curData = indirBlocks[i]->getData();
@@ -126,9 +126,12 @@ bool INode::trimToSize(unsigned long newFileSize) {
       (newFileSize / (system->BLOCK_SIZE)) + (plusOne);
 
   IndirectBlock *indirBlocks[3] =
-  { &firstIndirectionBlock,
-    &secondIndirectionBlock,
-    &thirdIndirectionBlock };
+  { firstIndirectionBlock,
+    secondIndirectionBlock,
+    thirdIndirectionBlock };
+  size_t indirCap[3] =
+  { system->BLOCK_SIZE, system->BLOCK_SIZE * system->BLOCK_SIZE,
+      system->BLOCK_SIZE * system->BLOCK_SIZE * system->BLOCK_SIZE};
 
   if (newBlockCount < DIRECT_DATA_BLOCK_COUNT) {
     for (size_t i = newBlockCount; i < DIRECT_DATA_BLOCK_COUNT; i++) {
@@ -141,11 +144,7 @@ bool INode::trimToSize(unsigned long newFileSize) {
         indirBlock->setData(&Array::EMPTY_ARRAY);
     }
   }
-
-  if (newBlockCount < firstIndirectionBlock.getMaximumCapacity()) {
-
-  } else if (newBlockCount < secondIndirectionBlock.getMaximumCapacity()) {
-  }
+  ///TODO rework!
 
   return true;
 }
@@ -165,7 +164,7 @@ bool INode::expandToSize(unsigned long newFileSize) {
 
   long remainingSize = newFileSize - getFileSizeInBytes();
   size_t interval = system->BLOCK_SIZE;
-  std::shared_ptr<DataBlock> newDataBlock;
+  DataBlock* newDataBlock;
   while (0 < remainingSize) {
     newDataBlock = system->getNewDataBlock();
     if (newDataBlock == nullptr) {
@@ -182,24 +181,24 @@ bool INode::expandToSize(unsigned long newFileSize) {
   return true;
 }
 
-bool INode::appendDataBlock(std::shared_ptr<DataBlock> db) {
+bool INode::appendDataBlock(DataBlock* db) {
   if (db == nullptr) {
     return false;
   }
   for (unsigned int i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
     if (datablocks[i]->status == Status::FREE) {
-      datablocks[i] = db.get();
+      datablocks[i] = db;
       datablocks[i]->status &= ~Status::FREE;
       return true;
     }
   }
-  if (firstIndirectionBlock.appendDataBlock(db)) {
+  if (firstIndirectionBlock->appendDataBlock(db, this->system)) {
     return true;
   }
-  if (secondIndirectionBlock.appendDataBlock(db)) {
+  if (secondIndirectionBlock->appendDataBlock(db, this->system)) {
     return true;
   }
-  if (thirdIndirectionBlock.appendDataBlock(db)) {
+  if (thirdIndirectionBlock->appendDataBlock(db, this->system)) {
     return true;
   }
   return false;
