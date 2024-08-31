@@ -214,6 +214,8 @@ class INodeSystem : public System {
         // dataBlockCount = ;
         }
 
+        ~INodeSystem() = default;
+
         ///Overriden Functions
 
         /// Deletes the file with the specified path, and only the specified file

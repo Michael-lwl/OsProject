@@ -1,3 +1,6 @@
+#ifndef SYSTEM_H
+#define SYSTEM_H
+
 #include "./data.h"
 #include "./states.h"
 #include "./file.h"
@@ -19,13 +22,15 @@ class System {
             if (dataHandler == nullptr) {
                 throw std::exception();
             }
-            dataHandler = dataHandler;
+            this->dataHandler = dataHandler;
             this->driveSize = driveSize;
         }
         virtual ~System() {
             delete dataHandler;
         }
 
+        ///Tries to boot the OS saved in this partition. Returns false, if not possible!
+        virtual bool boot() = 0;
         ///Deletes the file with the specified path, and only the specified file
         virtual bool deleteFile(std::string* filePath) = 0;
         ///Returns the accessible free space of this partition
@@ -57,8 +62,8 @@ class System {
             return iterations * totalLength;
         };
 
-        // template <typename T>
-        // std::shared_ptr<T> getChild(std::shared_ptr<Directory> directory, const std::string &filename);
+        /// Shows this Systems Datablocks in std::cout
+        virtual void show() = 0;
 
         //Getter and setter
         ///Returns this Systems DataHandler (Primary used for encoding a file)
@@ -78,3 +83,5 @@ class System {
         size_t driveSize;
 
 };
+
+#endif
