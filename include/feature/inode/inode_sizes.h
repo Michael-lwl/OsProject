@@ -28,13 +28,4 @@ inline INodeSizes getBytesPerInode(unsigned long long driveSize) {
   return LT_2GB;
 }
 
-enum BlockSizes {
-  B_512 = 512,    // 512 Byte Blocks
-  KIB_1 = 1024,   // 1 KB blocks
-  KIB_2 = 2048,   // 2 KB blocks
-  KIB_4 = 4096,   // 4 KB blocks
-  KIB_8 = 8192,   // 8 KB blocks
-  KIB_16 = 65536, // 64 KB blocks
-};
-
 #endif

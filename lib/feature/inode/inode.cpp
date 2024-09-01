@@ -115,23 +115,35 @@ std::unique_ptr<Array> INode::getData() {
   return data;
 }
 
-bool INode::trimToSize(unsigned long newFileSize) {
-  if (getFileSizeInBytes() < newFileSize)
+bool INode::trimToSize(unsigned long newFileSizeInBytes) {
+  if (newFileSizeInBytes == 0) {
+      for (size_t i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
+          if (datablocks[i] != nullptr) {
+            datablocks[i]->setData(&Array::EMPTY_ARRAY);
+            datablocks[i] = nullptr;
+          }
+      }
+      if (firstIndirectionBlock != nullptr) {
+          firstIndirectionBlock->trimToSize(0);
+          firstIndirectionBlock = nullptr;
+      }
+      if (secondIndirectionBlock != nullptr) {
+          secondIndirectionBlock->trimToSize(0);
+          secondIndirectionBlock = nullptr;
+      }
+      if (thirdIndirectionBlock != nullptr) {
+          thirdIndirectionBlock->trimToSize(0);
+          thirdIndirectionBlock = nullptr;
+      }
+  }
+  size_t fileSizeInBytes = getFileSizeInBytes();
+  if (fileSizeInBytes < newFileSizeInBytes)
     return false;
-  if (newFileSize == getFileSizeInBytes())
+  if (newFileSizeInBytes == fileSizeInBytes)
     return true;
 
-  unsigned long plusOne = (newFileSize % system->BLOCK_SIZE != 0 ? 1 : 0);
-  unsigned long newBlockCount =
-      (newFileSize / (system->BLOCK_SIZE)) + (plusOne);
-
-  IndirectBlock *indirBlocks[3] =
-  { firstIndirectionBlock,
-    secondIndirectionBlock,
-    thirdIndirectionBlock };
-  size_t indirCap[3] =
-  { system->BLOCK_SIZE, system->BLOCK_SIZE * system->BLOCK_SIZE,
-      system->BLOCK_SIZE * system->BLOCK_SIZE * system->BLOCK_SIZE};
+  unsigned long plusOne = (newFileSizeInBytes % system->BLOCK_SIZE != 0 ? 1 : 0);
+  unsigned long long newBlockCount = ( 1LL * newFileSizeInBytes / (system->BLOCK_SIZE)) + (plusOne);
 
   if (newBlockCount < DIRECT_DATA_BLOCK_COUNT) {
     for (size_t i = newBlockCount; i < DIRECT_DATA_BLOCK_COUNT; i++) {
@@ -140,12 +152,20 @@ bool INode::trimToSize(unsigned long newFileSize) {
         datablocks[i] = nullptr;
       }
     }
-    for (IndirectBlock* indirBlock : indirBlocks){
-        indirBlock->setData(&Array::EMPTY_ARRAY);
-    }
   }
-  ///TODO rework!
-
+  newBlockCount -= DIRECT_DATA_BLOCK_COUNT;
+  if (firstIndirectionBlock != nullptr && (newBlockCount < firstIndirectionBlock->getCapacity() || newBlockCount < firstIndirectionBlock->getLength())) {
+    firstIndirectionBlock->trimToSize(newBlockCount);
+  }
+  newBlockCount -= FirstIndirectBlock::CAPACITY(system->BLOCK_SIZE);
+  if (secondIndirectionBlock != nullptr && (newBlockCount < secondIndirectionBlock->getCapacity() || newBlockCount < secondIndirectionBlock->getLength())) {
+    secondIndirectionBlock->trimToSize(newBlockCount);
+  }
+  newBlockCount -= SecondIndirectBlock::CAPACITY(system->BLOCK_SIZE);
+  if (thirdIndirectionBlock != nullptr && (newBlockCount < thirdIndirectionBlock->getCapacity() || newBlockCount < thirdIndirectionBlock->getLength())) {
+    thirdIndirectionBlock->trimToSize(newBlockCount);
+  }
+  setFileSizeInBytes(newFileSizeInBytes);
   return true;
 }
 
@@ -164,7 +184,7 @@ bool INode::expandToSize(unsigned long newFileSize) {
 
   long remainingSize = newFileSize - getFileSizeInBytes();
   size_t interval = system->BLOCK_SIZE;
-  DataBlock* newDataBlock;
+  DataBlock *newDataBlock;
   while (0 < remainingSize) {
     newDataBlock = system->getNewDataBlock();
     if (newDataBlock == nullptr) {
@@ -178,49 +198,39 @@ bool INode::expandToSize(unsigned long newFileSize) {
     }
     remainingSize -= interval;
   }
+  setFileSizeInBytes(newFileSize);
   return true;
 }
 
-bool INode::appendDataBlock(DataBlock* db) {
-  std::cout << "INode::AppendBlock start" << std::endl;
+bool INode::appendDataBlock(DataBlock *db) {
   if (db == nullptr) {
     return false;
   }
-  std::cout << "INode::AppendBlock appending to direct block" << std::endl;
   for (unsigned int i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
     if (datablocks[i] == nullptr || datablocks[i]->status == Status::FREE) {
       datablocks[i] = db;
       datablocks[i]->status = Status::USED;
-      std::cout << "INode::AppendBlock appending to directBlock" << std::endl;
       return true;
     }
   }
-  std::cout << "INode::AppendBlock appending to first block" << std::endl;
   if (firstIndirectionBlock == nullptr) {
-      std::cout << "INode::AppendBlock Creating firstIndirectionBlock" << std::endl;
-      firstIndirectionBlock = system->getNewFirstIndirectBlock();
+    firstIndirectionBlock = system->getNewFirstIndirectBlock();
   }
   if (firstIndirectionBlock->appendDataBlock(db, this->system)) {
-      std::cout << "INode::AppendBlock end1" << std::endl;
     return true;
   }
   if (secondIndirectionBlock == nullptr) {
-      secondIndirectionBlock = system->getNewSecondIndirectBlock();
+    secondIndirectionBlock = system->getNewSecondIndirectBlock();
   }
-  std::cout << "INode::AppendBlock appending to second block" << std::endl;
   if (secondIndirectionBlock->appendDataBlock(db, this->system)) {
-      std::cout << "INode::AppendBlock end2" << std::endl;
     return true;
   }
   if (thirdIndirectionBlock == nullptr) {
-      thirdIndirectionBlock = system->getNewThirdIndirectBlock();
+    thirdIndirectionBlock = system->getNewThirdIndirectBlock();
   }
-  std::cout << "INode::AppendBlock appending to third block" << std::endl;
   if (thirdIndirectionBlock->appendDataBlock(db, this->system)) {
-      std::cout << "INode::AppendBlock end3" << std::endl;
     return true;
   }
-  std::cout << "INode::AppendBlock end4" << std::endl;
   return false;
 }
 

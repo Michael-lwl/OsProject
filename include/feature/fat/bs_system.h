@@ -32,7 +32,7 @@ class BsFat : public System
 
     public:
         // Factory function to allocate and construct BsFat with extra memory
-        static BsFat* create(unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+        static BsFat* create(void* memory, unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
             size_t bsFatSize = sizeof(BsFat);
             if (driveSize <= bsFatSize) {
                 return nullptr;
@@ -49,8 +49,10 @@ class BsFat : public System
             // Totalsize is :  (BsFat + all clusters & data blocks)
             size_t totalSize = bsFatSize + blockCount * usedSpacePerBlock;
 
-            // Allocate memory for the entire structure (BsFat + all clusters + data blocks)
-            void* memory = ::operator new(totalSize);  // Raw allocation
+            if (totalSize > driveSize) {
+                std::cerr << "Error in calculating BlockCount! Cannot create BsFat!" << std::endl;
+                return nullptr;
+            }
 
             // Use placement new to construct the BsFat object in the allocated memory
             BsFat* bsFat = new (memory) BsFat(driveSize, blockSize, dataHandler, blockCount);

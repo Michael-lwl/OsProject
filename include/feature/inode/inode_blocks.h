@@ -98,7 +98,7 @@ class IndirectBlock {
 class FirstIndirectBlock : public IndirectBlock, public Block {
     public:
         FirstIndirectBlock(size_t blockSize): Block(blockSize) {
-            data = new (static_cast<void*>(this + sizeof(FirstIndirectBlock))) DataBlock*[blockSize];
+            data = new (static_cast<void*>(this + sizeof(FirstIndirectBlock))) DataBlock*[CAPACITY(blockSize)];
             status = AdditionalStats::INDIRECT_1;
             // Initialize the blocks array to nullptr
             size_t numPointers = blockSize / sizeof(DataBlock*);
@@ -116,7 +116,10 @@ class FirstIndirectBlock : public IndirectBlock, public Block {
 
         unsigned long long getLength() override;
         unsigned long long getCapacity() override {
-            return BLOCK_SIZE / sizeof(DataBlock*);
+            return CAPACITY(BLOCK_SIZE);
+        }
+        static inline unsigned long long CAPACITY(size_t BLOCK_SIZE) {
+            return (BLOCK_SIZE- sizeof(FirstIndirectBlock))/sizeof(DataBlock*);
         }
         unsigned long long getByteCapacity() override {
             return this->getCapacity() * BLOCK_SIZE;
@@ -128,7 +131,7 @@ class FirstIndirectBlock : public IndirectBlock, public Block {
 class SecondIndirectBlock : public IndirectBlock, public Block {
     public:
         SecondIndirectBlock(size_t blockSize) : Block(blockSize) {
-                data = new (static_cast<void*>(this + sizeof(SecondIndirectBlock))) FirstIndirectBlock*[blockSize];
+                data = new (static_cast<void*>(this + sizeof(SecondIndirectBlock))) FirstIndirectBlock*[CAPACITY(blockSize)];
                 status = AdditionalStats::INDIRECT_2;
                 // Initialize the blocks array to nullptr
                 size_t numPointers = blockSize / sizeof(FirstIndirectBlock*);
@@ -145,7 +148,10 @@ class SecondIndirectBlock : public IndirectBlock, public Block {
             bool trimToSize(size_t blockCount) override;
             unsigned long long getLength() override;
             unsigned long long getCapacity() override {
-                return BLOCK_SIZE / sizeof(FirstIndirectBlock*) * BLOCK_SIZE / sizeof(DataBlock*);
+                return CAPACITY(BLOCK_SIZE);
+            }
+            static inline unsigned long long CAPACITY(size_t BLOCK_SIZE) {
+                return (BLOCK_SIZE- sizeof(SecondIndirectBlock))/ sizeof(FirstIndirectBlock*) * FirstIndirectBlock::CAPACITY(BLOCK_SIZE);
             }
             unsigned long long getByteCapacity() override {
                 return this->getCapacity() * BLOCK_SIZE;
@@ -156,15 +162,14 @@ class SecondIndirectBlock : public IndirectBlock, public Block {
 
 class ThirdIndirectBlock : public IndirectBlock, public Block {
     public:
-        ThirdIndirectBlock(size_t blockSize)
-            : IndirectBlock(), Block(blockSize) {
-                data = new (static_cast<void*>(this + sizeof(ThirdIndirectBlock))) SecondIndirectBlock*[blockSize];
-                status = AdditionalStats::INDIRECT_3;
-                // Initialize the blocks array to nullptr
-                size_t numPointers = blockSize / sizeof(SecondIndirectBlock*);
-                for (size_t i = 0; i < numPointers; ++i) {
-                    data[i] = nullptr;
-                }
+        ThirdIndirectBlock(size_t blockSize) : IndirectBlock(), Block(blockSize) {
+            data = new (static_cast<void*>(this + sizeof(ThirdIndirectBlock))) SecondIndirectBlock*[CAPACITY(blockSize)];
+            status = AdditionalStats::INDIRECT_3;
+            // Initialize the blocks array to nullptr
+            size_t numPointers = blockSize / sizeof(SecondIndirectBlock*);
+            for (size_t i = 0; i < numPointers; ++i) {
+                data[i] = nullptr;
+            }
         }
 
         ~ThirdIndirectBlock() = default;
@@ -175,7 +180,10 @@ class ThirdIndirectBlock : public IndirectBlock, public Block {
         bool trimToSize(size_t blockCount) override;
         unsigned long long getLength() override;
         unsigned long long getCapacity() override {
-            return BLOCK_SIZE / sizeof(SecondIndirectBlock*) * BLOCK_SIZE / sizeof(FirstIndirectBlock*) * BLOCK_SIZE / sizeof(DataBlock*);
+            return CAPACITY(BLOCK_SIZE);
+        }
+        static inline unsigned long long CAPACITY(size_t BLOCK_SIZE) {
+            return (BLOCK_SIZE - sizeof(ThirdIndirectBlock))/ sizeof(ThirdIndirectBlock*) * SecondIndirectBlock::CAPACITY(BLOCK_SIZE);
         }
         unsigned long long getByteCapacity() override {
             return this->getCapacity() * BLOCK_SIZE;

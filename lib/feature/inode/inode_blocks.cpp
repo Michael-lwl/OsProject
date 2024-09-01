@@ -97,17 +97,26 @@ bool FirstIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) 
   return true;
 }
 
-bool FirstIndirectBlock::trimToSize(size_t newSize) {
-    if (newSize > this->getByteCapacity())
+bool FirstIndirectBlock::trimToSize(size_t newBlockCount) {
+    if (newBlockCount == 0) {
+        for (size_t curBlock = 0; curBlock < getCapacity(); curBlock++) {
+            if (data[curBlock] != nullptr) {
+                data[curBlock]->setData(&Array::EMPTY_ARRAY);
+                data[curBlock]->status = Status::FREE;
+                data[curBlock] = nullptr;
+            }
+        }
+        this->status = Status::FREE;
+        return true;
+    }
+    if (newBlockCount > this->getByteCapacity())
         return false;
     size_t curCap = this->getLength();
-    if (curCap < newSize)
-        return false;
-    size_t newBlockCount = newSize / BLOCK_SIZE + (newSize % BLOCK_SIZE == 0 ? 0 : 1);//If newSize is a bytecount, we maybe need to append one more
-    if (newBlockCount > this->getCapacity())
+    if (curCap < newBlockCount)
         return false;
     for (size_t curBlock = newBlockCount; curBlock < curCap; curBlock++) {
         if (data[curBlock] != nullptr) {
+            data[curBlock]->setData(&Array::EMPTY_ARRAY);
             data[curBlock]->status = Status::FREE;
             data[curBlock] = nullptr;
         }
@@ -116,8 +125,7 @@ bool FirstIndirectBlock::trimToSize(size_t newSize) {
 }
 
 unsigned long long FirstIndirectBlock::getLength() {
-    unsigned long long output = 0;
-    for (size_t i = 0; i < this->BLOCK_SIZE; i++) {
+    for (size_t i = 0; i < this->getCapacity(); i++) {
         if (this->data[i] == nullptr) {
             return ++i;
         }
@@ -126,27 +134,27 @@ unsigned long long FirstIndirectBlock::getLength() {
 }
 
 bool SecondIndirectBlock::setData(Array *data) {
-  unsigned int maxSize = data->getLength();
-  if (maxSize > BLOCK_SIZE * BLOCK_SIZE * BLOCK_SIZE) {
+  unsigned int dataLen = data->getLength();
+  if (dataLen > getCapacity()) {
     std::cerr << "Cannot save data in this SecondIndirectBlock: Capacity is "
                  "too small!"
               << std::endl;
     return false;
   }
-  if (maxSize == 0) {//To clear the data, we take a array with size 0
+  if (dataLen == 0) {//To clear the data, we take a array with size 0
       for (unsigned long i = 0; i < this->getLength(); i++) {
           this->data[i]->setData(&Array::EMPTY_ARRAY);
       }
       return true;
   }
-  const unsigned int blockLen = this->BLOCK_SIZE;
+  const unsigned long long maxCapacity = this->getCapacity();
   Array dataSlice = nullptr;
   unsigned int offset = 0;
-  unsigned int curSize = maxSize;
+  unsigned int curSize = dataLen;
   unsigned int i = 0;
-  while (curSize > 0 && offset < maxSize && i < blockLen) {
-    if (curSize >= blockLen) {
-      dataSlice = new Array(blockLen, data->getArray() + offset,
+  while (curSize > 0 && offset < dataLen && i < maxCapacity) {
+    if (curSize >= maxCapacity) {
+      dataSlice = new Array(maxCapacity, data->getArray() + offset,
                             MemAllocation::DONT_DELETE);
     } else {
       dataSlice = new Array(curSize, data->getArray() + offset,
@@ -157,8 +165,8 @@ bool SecondIndirectBlock::setData(Array *data) {
       return false;
     }
     i++;
-    curSize -= blockLen;
-    offset += blockLen;
+    curSize -= this->BLOCK_SIZE;
+    offset += this->BLOCK_SIZE;
   }
   return true;
 }
@@ -202,32 +210,42 @@ bool SecondIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system)
   return true;
 }
 
-bool SecondIndirectBlock::trimToSize(size_t newSize) {
-    if (newSize > this->getByteCapacity())
-            return false;
-    size_t curCap = this->getLength();
-    if (curCap < newSize)
+bool SecondIndirectBlock::trimToSize(size_t newBlockCount) {
+    if (newBlockCount == 0) {
+        for (size_t i = 0; i < BLOCK_SIZE; i++) {
+            if (data[i] != nullptr) {
+                data[i]->trimToSize(0);
+                data[i] = nullptr;
+            }
+        }
+        this->status = Status::FREE;
+        return true;
+    }
+    if (newBlockCount > this->getByteCapacity())
         return false;
-    size_t newBlockCount = newSize / BLOCK_SIZE + (newSize % BLOCK_SIZE == 0 ? 0 : 1);//If newSize is a bytecount, we maybe need to append one more
-    if (newBlockCount > this->getCapacity())
+    size_t curBlockLen = this->getLength();
+    if (curBlockLen < newBlockCount)
         return false;
-    for (size_t curBlock = newBlockCount; curBlock < curCap; curBlock++) {
-        if (data[curBlock] != nullptr) {
-            data[curBlock]->status = Status::FREE;
-            data[curBlock] = nullptr;
+    size_t remainingBlocks = newBlockCount % BLOCK_SIZE;
+    size_t lastIndexToKeep = newBlockCount / BLOCK_SIZE;
+    if (data[lastIndexToKeep] != nullptr)
+        data[lastIndexToKeep]->trimToSize(remainingBlocks);
+    for (size_t i = lastIndexToKeep + 1; i < BLOCK_SIZE; i++) {
+        if (data[i] != nullptr) {
+            data[i]->trimToSize(0);
+            data[i] = nullptr;
         }
     }
     return true;
 }
 
 unsigned long long SecondIndirectBlock::getLength() {
-    unsigned long long output = 0;
-    for (size_t i = 0; i < this->BLOCK_SIZE; i++) {
+    for (unsigned long long i = 0; i < this->getCapacity(); i++) {
         if (this->data[i] == nullptr) {
-            return i;
+            return ++i;
         }
     }
-    return this->BLOCK_SIZE;
+    return this->getCapacity();
 }
 
 bool ThirdIndirectBlock::setData(Array *data) {
@@ -307,16 +325,38 @@ bool ThirdIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) 
       return true;
 }
 
-
-bool ThirdIndirectBlock::trimToSize(size_t newSize) {
-
+bool ThirdIndirectBlock::trimToSize(size_t newBlockCount) {
+    if (newBlockCount == 0) {
+        for (size_t i = 0; i < BLOCK_SIZE; i++) {
+            if (data[i] != nullptr) {
+                data[i]->trimToSize(0);
+                data[i] = nullptr;
+            }
+        }
+        this->status = Status::FREE;
+        return true;
+    }
+    if (newBlockCount > this->getByteCapacity())
+            return false;
+        size_t curBlockLen = this->getLength();
+        if (curBlockLen < newBlockCount)
+            return false;
+        size_t remainingBlocks = newBlockCount % BLOCK_SIZE;
+        size_t lastIndexToKeep = newBlockCount / BLOCK_SIZE;
+        if (data[lastIndexToKeep] != nullptr)
+            data[lastIndexToKeep]->trimToSize(remainingBlocks);
+        for (size_t i = lastIndexToKeep + 1; i < BLOCK_SIZE; i++) {
+            if (data[i] != nullptr) {
+                data[i] = nullptr;
+            }
+        }
+        return true;
 }
 
 unsigned long long ThirdIndirectBlock::getLength() {
-    unsigned long long output = 0;
     for (size_t i = 0; i < this->BLOCK_SIZE; i++) {
         if (this->data[i] == nullptr) {
-            return i;
+            return ++i;
         }
     }
     return this->BLOCK_SIZE;

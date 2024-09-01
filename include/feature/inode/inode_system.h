@@ -1,6 +1,7 @@
 #ifndef INODE_SYSTEM_H
 #define INODE_SYSTEM_H
 
+class INodeSystem;
 #include "./../../core/data.h"
 #include "./../../core/data_sizes.h"
 #include "./../../core/system.h"
@@ -13,7 +14,6 @@
 #include <sys/types.h>
 #include <vector>
 
-class INodeSystem;
 
 const unsigned char DIRECT_DATA_BLOCK_COUNT = 12;
 const size_t INDIRECTION_BLOCK_DEPTH = 3;
@@ -33,9 +33,6 @@ class INode : public File {
                 this->ctime = inode->getCtime();
                 this->atime = inode->getAtime();
                 this->system = inode->system;
-                // this->firstIndirectionBlock = inode->getFirstIndirectionBlock();
-                // this->secondIndirectionBlock = inode->getSecondIndirectionBlock();
-                // this->thirdIndirectionBlock = inode->getThirdIndirectionBlock();
                 DataBlock** iNodeDataBlocks = inode->getDatablocks();
                 for (size_t i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
                     datablocks[i] = iNodeDataBlocks[i];
@@ -51,8 +48,7 @@ class INode : public File {
                 }
         }
 
-        INode(std::string* filePath, unsigned char flags, size_t fileSizeInBytes, INodeSystem* system): File(filePath, flags, fileSizeInBytes)
-            {
+        INode(std::string* filePath, unsigned char flags, size_t fileSizeInBytes, INodeSystem* system): File(filePath, flags, fileSizeInBytes) {
                 this->flags = flags;
                 numHardlinks = 0;
                 uid = 0;
@@ -253,8 +249,7 @@ class INodeSystem : public System {
             System(dataHandler, driveSizeInBytes, blockSize) ,
             iNodeSize(getBytesPerInode(driveSizeInBytes)),
             iNodeCount(iNodeCount),
-            dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize)
-            {
+            dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize) {
                 iNodes = getINode(0);
                 for (size_t i = 0; i < iNodeCount; i++) {
                     new (iNodes + i) INode(nullptr, 0, 0, this);

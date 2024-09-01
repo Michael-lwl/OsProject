@@ -26,7 +26,10 @@ int test_BsFat() {
   int blockSize = 512;
   int memorySize = 1048576; // 8 MebiByte
   Data *dataHandler = new Data_Impl(blockSize);
-  BsFat *pFat = BsFat::create(memorySize, blockSize, dataHandler);
+  // Allocate memory for the entire structure (BsFat + all clusters + data blocks)
+  void* memory = ::operator new(memorySize);  // Raw allocation
+  BsFat *pFat = BsFat::create(memory, memorySize, blockSize, dataHandler);
+
   // createBsFat(memorySize, blockSize);
   if (!pFat) {
     cerr << "Failed to create BsFat." << endl;
@@ -36,7 +39,7 @@ int test_BsFat() {
   // Show initial FAT state
   pFat->show();
 
-  std::string filename1 = "file1.txt";
+  std::string filename1 = "file1.tmp";
   unsigned long long file1Size = 200 * blockSize;
   std::string filename2 = "file2.txt";
   unsigned long long file2Size = 50 * blockSize;
@@ -46,15 +49,15 @@ int test_BsFat() {
 
   cout << "Creating File 1" << endl;
   shared_ptr<File> file1 =
-      pFat->createFile(&filename1, file1Size, Flags::ASCII);
+      pFat->createFile(&filename1, file1Size, Flags::SYSTEM | Flags::IS_TEMP);
   if (file1 == nullptr) {
-    cerr << "Failed to create file1.txt." << endl;
+    cerr << "Failed to create file1.tmp." << endl;
   }
   cout << "Created File 1" << endl;
   pFat->show();
 
   shared_ptr<File> file2 =
-      pFat->createFile(&filename2, file2Size, Flags::SYSTEM);
+      pFat->createFile(&filename2, file2Size, Flags::ASCII);
   if (file2 == nullptr) {
     cerr << "Failed to create file2.txt." << endl;
   }
@@ -114,7 +117,7 @@ int test_INodes() {
   // Show initial FAT state
   iNodeSystem->show();
 
-  std::string filename1 = "file1.txt";
+  std::string filename1 = "file1.tmp";
   unsigned long long file1Size = 200 * blockSize;
   std::string filename2 = "file2.txt";
   unsigned long long file2Size = 50 * blockSize;
@@ -124,32 +127,34 @@ int test_INodes() {
 
   cout << "Creating File 1" << endl;
   shared_ptr<File> file1 =
-      iNodeSystem->createFile(&filename1, file1Size, Flags::ASCII);
+      iNodeSystem->createFile(&filename1, file1Size, Flags::SYSTEM | Flags::IS_TEMP);
   if (file1 == nullptr) {
-    cerr << "Failed to create file1.txt." << endl;
+    cerr << "Failed to create file1.tmp." << endl;
   }
   cout << "Created File 1" << endl;
   iNodeSystem->show();
 
+  cout << "Creating File 2" << endl;
   shared_ptr<File> file2 =
-      iNodeSystem->createFile(&filename2, file2Size, Flags::SYSTEM);
+      iNodeSystem->createFile(&filename2, file2Size, Flags::ASCII);
   if (file2 == nullptr) {
     cerr << "Failed to create file2.txt." << endl;
   }
+  cout << "Created File 2" << endl;
   iNodeSystem->show();
   cout << "--------------------------------------------------------------------"
           "--------------------------------------------------------------------"
        << endl;
 
   // Corrupt a random block
-  auto corruptedCluster = iNodeSystem->getNewDataBlock();
-  if (corruptedCluster != nullptr)
-    corruptedCluster->status = Status::CORRUPTED;
+  auto corruptedDataBlock = iNodeSystem->getNewDataBlock();
+  if (corruptedDataBlock != nullptr)
+    corruptedDataBlock->status = Status::CORRUPTED;
 
   // Reserve a random block
-  auto reservedCluster = iNodeSystem->getNewDataBlock();
-  if (reservedCluster != nullptr)
-    reservedCluster->status = Status::RESERVED;
+  auto reservedDataBlock = iNodeSystem->getNewDataBlock();
+  if (reservedDataBlock != nullptr)
+    reservedDataBlock->status = Status::RESERVED;
 
   iNodeSystem->show();
   if (file1 != nullptr) {

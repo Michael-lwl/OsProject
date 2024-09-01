@@ -7,13 +7,19 @@
 /// Deletes the file with the specified path, and only the specified file
 bool INodeSystem::deleteFile(std::string *filePath) {
   std::shared_ptr<File> mFile = getFile(filePath);
+  std::cout << "Found File: " << *filePath << std::endl;
   if (mFile == nullptr) {
     std::cerr << "File \"" << filePath << "\" does not exist!" << std::endl;
     return false;
   }
-  INode *file = dynamic_cast<INode *>(mFile.get());
+  std::cout << "Before cast: " << mFile.get() << std::endl;
+  INode *file = static_cast<INode *>(mFile.get());
+  std::cout << "After cast: " << file << std::endl;
+  std::cout << "Before resize: " << file->getFileSizeInBytes() << std::endl;
   file->resizeFile(0);
+  std::cout << "After resize: " << file->getFileSizeInBytes() << std::endl;
   file->setFlags(0);
+  std::cout << "Deleted File: " << *filePath << std::endl;
   return true;
 }
 
@@ -214,7 +220,7 @@ FirstIndirectBlock* INodeSystem::getNewFirstIndirectBlock() {
   if (output == nullptr) {
     return nullptr;
   }
-  return new (output) FirstIndirectBlock(BLOCK_SIZE/sizeof(DataBlock*));
+  return new (output) FirstIndirectBlock(BLOCK_SIZE);
 }
 
 SecondIndirectBlock* INodeSystem::getNewSecondIndirectBlock() {
@@ -222,14 +228,14 @@ SecondIndirectBlock* INodeSystem::getNewSecondIndirectBlock() {
   if (output == nullptr) {
     return nullptr;
   }
-  return new (output) SecondIndirectBlock(BLOCK_SIZE/sizeof(FirstIndirectBlock*));
+  return new (output) SecondIndirectBlock(BLOCK_SIZE);
 }
 ThirdIndirectBlock* INodeSystem::getNewThirdIndirectBlock() {
   DataBlock* output = getNewDataBlock(AdditionalStats::INDIRECT_3);
   if (output == nullptr) {
       return nullptr;
   }
-  return new (output) ThirdIndirectBlock(BLOCK_SIZE/sizeof(SecondIndirectBlock*));
+  return new (output) ThirdIndirectBlock(BLOCK_SIZE);
 }
 
 std::shared_ptr<File> INodeSystem::getRoot() {
