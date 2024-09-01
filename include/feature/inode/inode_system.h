@@ -5,8 +5,7 @@
 #include "./../../core/data_sizes.h"
 #include "./../../core/system.h"
 #include "./../../core/directory.h"
-#include "./data_block.h"
-#include "./indirect_blocks.h"
+#include "./inode_blocks.h"
 #include "./inode_sizes.h"
 #include <memory>
 #include <chrono>
@@ -185,22 +184,6 @@ struct INodeDirectory : public INode , public Directory {
         std::vector<DirectoryEntry> files;
 };
 
-inline size_t mapToInodeSize(size_t driveSizeInByte) {
-  if (driveSizeInByte <= ByteSizes::GB) {
-    return INodeSizes::LE_1GB;
-  }
-  if (driveSizeInByte < 2 * ByteSizes::GB) {
-    return INodeSizes::LT_2GB;
-  }
-  if (driveSizeInByte < 3 * ByteSizes::GB) {
-    return INodeSizes::LT_3GB;
-  }
-  if (driveSizeInByte < ByteSizes::TB) {
-    return INodeSizes::LE_1TB;
-  }
-  return INodeSizes::GT_1TB;
-}
-
 class INodeSystem : public System {
     public:
         static size_t calculateInodeSize(size_t ptrSize) {
@@ -268,13 +251,16 @@ class INodeSystem : public System {
 
         INodeSystem(size_t driveSizeInBytes, size_t blockSize, Data* dataHandler, size_t iNodeCount) :
             System(dataHandler, driveSizeInBytes, blockSize) ,
-            iNodeSize(mapToInodeSize(driveSizeInBytes)),iNodeCount(iNodeCount), dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize)
+            iNodeSize(getBytesPerInode(driveSizeInBytes)),
+            iNodeCount(iNodeCount),
+            dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize)
             {
+                iNodes = getINode(0);
                 for (size_t i = 0; i < iNodeCount; i++) {
                     new (iNodes + i) INode(nullptr, 0, 0, this);
                 }
                 for (size_t i = 0; i < dataBlockCount; i++) {
-                    new (getDataBlock(i)) DataBlock(BLOCK_SIZE);
+                    new (getDataBlock(i)) DataBlock(BLOCK_SIZE - sizeof(DataBlock));
                 }
         }
 
@@ -307,7 +293,10 @@ class INodeSystem : public System {
         float getFragmentation() override;
         bool defragDisk() override;
 
-        DataBlock* getNewDataBlock();
+        DataBlock* getNewDataBlock(unsigned char status = Status::RESERVED);
+        FirstIndirectBlock* getNewFirstIndirectBlock();
+        SecondIndirectBlock* getNewSecondIndirectBlock();
+        ThirdIndirectBlock* getNewThirdIndirectBlock();
 
         bool boot() override { return false;}
 
@@ -319,7 +308,15 @@ class INodeSystem : public System {
 
         size_t getBlockCount() {return dataBlockCount;}
 
-        // Getter for the data block associated with a specific BsCluster
+        /// Returns the INode at the specific index
+        INode* getINode(size_t iNodeIndex) {
+            if (iNodeIndex >= iNodeCount) {
+                std::string bIStr = std::to_string(iNodeIndex);
+                throw std::out_of_range(std::string("DataBlockIndex ").append(bIStr).append(" out of bounds"));
+            }
+            return reinterpret_cast<INode*>(reinterpret_cast<unsigned char*>(this) + sizeof(INodeSystem) + (iNodeIndex * sizeof(INode)));
+        }
+        // Getter for a datablock at a specific index
         DataBlock* getDataBlock(size_t blockIndex) {
             if (blockIndex >= dataBlockCount) {
                 std::string bIStr = std::to_string(blockIndex);
@@ -339,7 +336,7 @@ class INodeSystem : public System {
                                          const std::string &fileName);
 
 
-        INode* iNodes[];
+        INode* iNodes;
 };
 
 #endif

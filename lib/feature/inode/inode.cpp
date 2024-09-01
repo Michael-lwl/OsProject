@@ -182,25 +182,45 @@ bool INode::expandToSize(unsigned long newFileSize) {
 }
 
 bool INode::appendDataBlock(DataBlock* db) {
+  std::cout << "INode::AppendBlock start" << std::endl;
   if (db == nullptr) {
     return false;
   }
+  std::cout << "INode::AppendBlock appending to direct block" << std::endl;
   for (unsigned int i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
-    if (datablocks[i]->status == Status::FREE) {
+    if (datablocks[i] == nullptr || datablocks[i]->status == Status::FREE) {
       datablocks[i] = db;
-      datablocks[i]->status &= ~Status::FREE;
+      datablocks[i]->status = Status::USED;
+      std::cout << "INode::AppendBlock appending to directBlock" << std::endl;
       return true;
     }
   }
+  std::cout << "INode::AppendBlock appending to first block" << std::endl;
+  if (firstIndirectionBlock == nullptr) {
+      std::cout << "INode::AppendBlock Creating firstIndirectionBlock" << std::endl;
+      firstIndirectionBlock = system->getNewFirstIndirectBlock();
+  }
   if (firstIndirectionBlock->appendDataBlock(db, this->system)) {
+      std::cout << "INode::AppendBlock end1" << std::endl;
     return true;
   }
+  if (secondIndirectionBlock == nullptr) {
+      secondIndirectionBlock = system->getNewSecondIndirectBlock();
+  }
+  std::cout << "INode::AppendBlock appending to second block" << std::endl;
   if (secondIndirectionBlock->appendDataBlock(db, this->system)) {
+      std::cout << "INode::AppendBlock end2" << std::endl;
     return true;
   }
+  if (thirdIndirectionBlock == nullptr) {
+      thirdIndirectionBlock = system->getNewThirdIndirectBlock();
+  }
+  std::cout << "INode::AppendBlock appending to third block" << std::endl;
   if (thirdIndirectionBlock->appendDataBlock(db, this->system)) {
+      std::cout << "INode::AppendBlock end3" << std::endl;
     return true;
   }
+  std::cout << "INode::AppendBlock end4" << std::endl;
   return false;
 }
 

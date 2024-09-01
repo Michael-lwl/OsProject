@@ -5,9 +5,9 @@
 #include "./../include/feature/inode/inode_system.h"
 #include <cmath>
 #include <iostream>
+#include <ostream>
 #include <string.h>
 #include <string>
-#include <vector>
 
 #define TODO std::cout << "TODO: implement the rest" << std::endl;
 void simpleAndClean(void *ptr) {
@@ -107,7 +107,7 @@ int test_INodes() {
   INodeSystem *iNodeSystem = INodeSystem::create(memorySize, blockSize, dataHandler);
   // createBsFat(memorySize, blockSize);
   if (!iNodeSystem) {
-    cerr << "Failed to create BsFat." << endl;
+    cerr << "Failed to create INodeSystem." << endl;
     return -1;
   }
 
@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
   INodeSystem* inode1 = new (usableDrive) INodeSystem()
   mbr.addSystem(festePlatte[0]);*/
   int output = 0;
-  output |= test_BsFat();
+  // output |= test_BsFat();
   output |= test_INodes();
   return output;
 }

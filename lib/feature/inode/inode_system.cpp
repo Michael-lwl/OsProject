@@ -2,8 +2,6 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
-#include <sstream>
-#include <type_traits>
 #include <vector>
 
 /// Deletes the file with the specified path, and only the specified file
@@ -23,7 +21,7 @@ bool INodeSystem::deleteFile(std::string *filePath) {
 unsigned long INodeSystem::getFreeSpace() {
   size_t count = 0;
   for (size_t i = 0; i < this->iNodeCount; i++) {
-    if (this->iNodes[i]->getFileSizeInBytes() > 0) {
+    if (this->getINode(i)->getFileSizeInBytes() > 0) {
       count++;
     }
   }
@@ -33,7 +31,7 @@ unsigned long INodeSystem::getFreeSpace() {
   }
   count = this->getDriveSize();
   for (size_t i = 0; i < this->iNodeCount; i++) {
-    count -= this->iNodes[i]->getFileSizeInBytes();
+    count -= this->getINode(i)->getFileSizeInBytes();
   }
   return count;
 }
@@ -42,7 +40,7 @@ unsigned long INodeSystem::getFreeSpace() {
 unsigned long INodeSystem::getFileCount() {
   unsigned long count = 0;
   for (size_t i = 0; i < this->iNodeCount; i++) {
-    if (this->iNodes[i]->getFileSizeInBytes() > 0) {
+    if (this->getINode(i)->getFileSizeInBytes() > 0) {
       count++;
     }
   }
@@ -77,8 +75,8 @@ std::shared_ptr<File> INodeSystem::createFile(std::string *filePath,
 
   INode *inode = nullptr;
   for (size_t i = 0; i < iNodeCount; i++) {
-    if (iNodes[i]->getFlags() == 0) {
-      inode = iNodes[i];
+    if (getINode(i)->getFlags() == 0) {
+      inode = getINode(i);
       break;
     }
   }
@@ -91,6 +89,10 @@ std::shared_ptr<File> INodeSystem::createFile(std::string *filePath,
   inode->setMtime(now_t_t);
   inode->setCtime(now_t_t);
   inode->setAtime(now_t_t);
+
+  inode->rename(filePath);
+  inode->resizeFile(fileSize);
+  inode->setFlags(flags);
 
   return std::make_shared<INode>(inode);
 }
@@ -119,26 +121,27 @@ std::shared_ptr<File> INodeSystem::getFile(std::string *filePath) {
     cerr << "Cannot find file: Filepath is empty or null!" << endl;
     return nullptr;
   }
-  vector<string> foldersNFile;
-  stringstream ss(*filePath);
-  string segment;
+  vector<string> foldersNFile = splitAt(filePath, '/');
+  shared_ptr<File> curFile;
 
-  while (getline(ss, segment, '/')) {
-    foldersNFile.push_back(segment);
-  }
-
-  shared_ptr<File> curFile = getRoot();
-  for (const string &f : foldersNFile) {
-    if (!Directory::isDirectory(curFile.get())) {
-      return nullptr;
+  if (foldersNFile.size() > 1) {
+    curFile = getRoot();
+    for (const string &f : foldersNFile) {
+        if (!Directory::isDirectory(curFile.get())) {
+            return nullptr;
+        }
+        Directory *dir = static_cast<INodeDirectory *>(static_cast<INode *>(curFile.get()));
+        curFile = getChild(dir, f);
+        if (curFile == nullptr) {
+            return nullptr;
+        }
     }
-    // TODO: is this legal
-    Directory *dir =
-        static_cast<INodeDirectory *>(static_cast<INode *>(curFile.get()));
-    curFile = getChild(dir, f);
-    if (curFile == nullptr) {
-      return nullptr;
-    }
+  } else {
+      for (size_t i = 0; i < iNodeCount; i++) {
+          if (this->getINode(i)->getFlags() != 0 && this->getINode(i)->getFilePath()->compare(*filePath)){
+              curFile = std::make_shared<INode>(this->getINode(i));
+          }
+      }
   }
   time_t now_t_t = getCurrentTime();
   dynamic_pointer_cast<INode>(curFile)->setAtime(now_t_t);
@@ -153,7 +156,7 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
   if (iNodeId > iNodeCount) {
     return nullptr;
   }
-  INode *file = this->iNodes[iNodeId];
+  INode *file = getINode(iNodeId);
   if (!Directory::isDirectory(file)) {
     return std::static_pointer_cast<File>(std::make_shared<INode>(file));
   }
@@ -165,8 +168,23 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
 }
 
 float INodeSystem::getFragmentation() {
-  // TODO: Implement the function!
-  return 0.0f;
+    long free = 0;
+    long freeMax = 0;
+    long counter = 0;
+
+    for (unsigned int i = 0; i < this->dataBlockCount; i++) {
+        if (this->getDataBlock(i)->status == Status::FREE) {
+            free++;
+            counter++;
+            continue;
+        }
+        if (freeMax < counter)
+            freeMax = counter;
+        counter = 0;
+    }
+    if (free == 0)
+        return 0.0;
+    return ((float)freeMax / free);
 }
 
 bool INodeSystem::defragDisk() {
@@ -174,8 +192,7 @@ bool INodeSystem::defragDisk() {
   return true;
 }
 
-DataBlock *INodeSystem::getNewDataBlock() {
-  /// TODO: Maybe remove status and revisit this function
+DataBlock *INodeSystem::getNewDataBlock(unsigned char status) {
   DataBlock *output = nullptr;
   unsigned int initialOffset = rand() % dataBlockCount;
   unsigned int offset = initialOffset;
@@ -188,7 +205,31 @@ DataBlock *INodeSystem::getNewDataBlock() {
   if (output->status != Status::FREE) {
     return nullptr;
   }
+  output->status = status;
   return output;
+}
+
+FirstIndirectBlock* INodeSystem::getNewFirstIndirectBlock() {
+  DataBlock* output = getNewDataBlock(AdditionalStats::INDIRECT_1);
+  if (output == nullptr) {
+    return nullptr;
+  }
+  return new (output) FirstIndirectBlock(BLOCK_SIZE/sizeof(DataBlock*));
+}
+
+SecondIndirectBlock* INodeSystem::getNewSecondIndirectBlock() {
+  DataBlock* output = getNewDataBlock(AdditionalStats::INDIRECT_2);
+  if (output == nullptr) {
+    return nullptr;
+  }
+  return new (output) SecondIndirectBlock(BLOCK_SIZE/sizeof(FirstIndirectBlock*));
+}
+ThirdIndirectBlock* INodeSystem::getNewThirdIndirectBlock() {
+  DataBlock* output = getNewDataBlock(AdditionalStats::INDIRECT_3);
+  if (output == nullptr) {
+      return nullptr;
+  }
+  return new (output) ThirdIndirectBlock(BLOCK_SIZE/sizeof(SecondIndirectBlock*));
 }
 
 std::shared_ptr<File> INodeSystem::getRoot() {
@@ -226,10 +267,11 @@ char INodeSystem::getCharForObjective(DataBlock *db) {
   char output = getCharForStatus(db->status);
   if (output == StatusChar::USED_CHAR) {
     for (unsigned int i = 0; i < iNodeCount; i++) {
-      if (iNodes[i]->getDatablocks()[0] == db)
+      if (this->getINode(i) != nullptr && this->getINode(i)->getDatablocks()[0] == db)
         output = i + '0';
     }
-  } else if (output == StatusChar::DEF_CHAR) {
+  }
+  if (output == StatusChar::DEF_CHAR) {
     switch (db->status) {
       case AdditionalStats::INDIRECT_1:
         output = AdditionalStatsChars::INDIRECT_1_CHAR;

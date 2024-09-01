@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <string>
+#include <vector>
 #include "./../include/utils.h"
 
 void safeFree(void *ptr)
@@ -60,4 +62,21 @@ std::string colorize_headless(std::string str, Color c) {
 
 std::string colorize(std::string str, Color c) {
     return colorize_headless(str, c).append(colorCharCode(WHITE));
+}
+
+std::vector<std::string> splitAt(const std::string* string, const unsigned char splitter) {
+    std::vector<std::string> fi;
+    size_t start = 0;
+    size_t end = 0;
+    while ((end = string->find(splitter, start)) != std::string::npos) {
+        if (end != start) {
+            fi.push_back(string->substr(start, end - start));
+        }
+        start = end + 1;
+    }
+    // Add the last segment after the last splitter
+    if (start < string->length()) {
+        fi.push_back(string->substr(start));
+    }
+    return fi;
 }

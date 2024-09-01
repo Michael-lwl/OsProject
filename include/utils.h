@@ -4,6 +4,7 @@
 #include <chrono>
 #include <ctime>
 #include <string>
+#include <vector>
 
 enum Color {
     RED,
@@ -58,4 +59,7 @@ const std::string  colorCharCode(Color c);
 std::string colorize_headless(std::string str, Color c);
 ///colors the given string in the given color and appends the Color::WHITE afterwards
 std::string colorize(std::string str, Color c);
+
+
+std::vector<std::string> splitAt(const std::string* str, const unsigned char splitter);
 #endif
