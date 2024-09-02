@@ -2,6 +2,7 @@
 #include "./../include/core/data_impl.h"
 #include "./../include/core/data_sizes.h"
 #include "./../include/feature/fat/bs_system.h"
+#include "./../include/core/mbr.h"
 #include <cmath>
 #include <iostream>
 #include <string.h>
@@ -97,6 +98,14 @@ int test_BsFat() {
 
   return 0;
 }
+int test_mbr() {
+  Master_Boot_Record m(2000,512);
+  SpeicherSystem b = BS_FAT;
+  m.createPartition(b);
+  m.createPartition(b);
+  return 1;
+
+}
 
 const size_t STD_BLOCK_SIZE = 4 * getSizeInByte(ByteSizes::KB);
 
@@ -117,5 +126,6 @@ int main(int argc, char **argv) {
   const unsigned char* usableDrive = FestePlatte + sizeof(MBR) + 1;
   INodeSystem* inode1 = new (usableDrive) INodeSystem()
   mbr.addSystem(festePlatte[0]);*/
-  return test_BsFat();
+  //return test_BsFat();
+  return test_mbr();
 }

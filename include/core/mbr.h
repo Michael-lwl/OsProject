@@ -10,10 +10,10 @@
 #include "../feature/fat/bs_system.h"
 #include "../feature/inode/inode_system.h"
 
-const int BOOT = 0x0000;
+const char BOOT = 0x0000;
 const int MBR_SIZE = 512;
-const int DATA_SIGNATURE = 0x01B8;
-//const int NULL = 0x001BC;
+const short DATA_SIGNATURE = 0x01B8;
+const short NULL_ = 0x001BC;
 const int PARTITION_TABLE = 0x01BE;
 const int BOOT_SIGNATURE = 0x01FE;
 const int BOOT_SECTOR = 0x01FF;
@@ -21,9 +21,8 @@ const int BOOT_SECTOR = 0x01FF;
 const int maxSectors = 63;
 const int maxHeads = 256;
 const int maxCylinders = 1024;
-const int blockSize = 512;
 
-enum SpeicherSystem {
+enum SpeicherSystem : unsigned char {
 BS_FAT,
 INODE
 };
@@ -36,7 +35,7 @@ struct CHS {
 
 struct partition {
     char isBootable;
-    char type;
+    SpeicherSystem type;
     //unsigned int length;
     unsigned int sectorsCount;
     CHS* firstSektor;
@@ -48,39 +47,45 @@ struct partition {
 class Master_Boot_Record{
 public:
 
-Master_Boot_Record(unsigned int Blöcke, SpeicherSystem System){
+Master_Boot_Record(unsigned int Blöcke, int blocksize){
 this->Blöcke = Blöcke;
-this->System = System;
+this->BlockSize = blocksize;
+
 
 }
-void createPartition(unsigned int Speicher, SpeicherSystem System){
+void createPartition( SpeicherSystem System){
 partition Eintrag;
-Data *dataHandler = new Data_Impl(blockSize);
-Eintrag.isBootable = 1;
-Eintrag.type = 1;
-Eintrag.firstSektor = createSector(1); //Todo First Sektor ermitteln
-Eintrag.lastSektor = createSector(Speicher);
+Data *dataHandler = new Data_Impl(this->BlockSize);
+Eintrag.type = System;
+Eintrag.firstSektor = createSector(getSectorCount(Eintrag)); //Todo First Sektor ermitteln
+Eintrag.lastSektor = createSector(getSectorCount(Eintrag) + getBlöcke());
 Eintrag.sectorsCount = getSectorCount(Eintrag);
     if(Partitions[0].firstSektor != Partitions[0].startPtr ){
         Eintrag.startPtr = Eintrag.firstSektor;
+        std::cout << 'Der Startpointer wurde zum ersten Mal erfolgereich gesetzt' << std::endl;
     }
     else{
     Eintrag.startPtr = Partitions[0].startPtr;
+        std::cout << 'Der Startpointer wurde erfolgereich gesetzt' << std::endl;
     }
-Eintrag.system = createSystem(System,Speicher,dataHandler);
-
+Eintrag.system = createSystem(System,getBlöcke(),dataHandler); //Todo Speichergröße annehmenb
+    Eintrag.isBootable = checkbootable(Eintrag);
 //
 for(int i = 0; i < 4; i++){
 if(Partitions[i].firstSektor == NULL || Partitions[i].lastSektor == NULL){
  Partitions[i] = Eintrag;
+    std::cout << 'Die Partition wurde erfolgreich an der Stelle' + i  + 'weggeschrieben' << std::endl;
  break;
  }
 }
 }
-
+unsigned char checkbootable(partition E){
+//Todo check if bootable
+return 0x80;
+}
 System*  createSystem(SpeicherSystem System, unsigned int Speicher,Data* datahandler){
-if(System == BS_FAT){return bootBSFat(blockSize,Speicher,datahandler);}
-//else if(System = INODE){return bootINode(blockSize,Speicher,datahandler);}
+if(System == BS_FAT){return bootBSFat(this->BlockSize,Speicher,datahandler);}
+//else if(System = INODE){return bootINode(this->BlockSize,Speicher,datahandler);}
 else{throw("Das System konnte nicht erstellt werden");}
 }
 
@@ -92,9 +97,6 @@ return (E.lastSektor->c * maxHeads + E.lastSektor->h) * maxSectors + ( E.lastSek
 
     CHS* createSector(unsigned int block) {
     CHS* sector;
-
-
-
     const unsigned int maxBlocks = maxCylinders * maxHeads * maxSectors;
 
     if (block >= maxBlocks) {
@@ -114,7 +116,7 @@ return (E.lastSektor->c * maxHeads + E.lastSektor->h) * maxSectors + ( E.lastSek
 
 
 bool boot(int bIndex = 0){
-if(Partitions[bIndex].isBootable != 1){
+if(Partitions[bIndex].isBootable != 0x80){
 return Partitions[bIndex].isBootable != 1 && Partitions[bIndex].system->boot();
 }
 return 1;}
@@ -136,21 +138,15 @@ return 1;}
 
 //  }
 
+unsigned int getBlöcke(){return this->Blöcke;}
+unsigned int getBlocksize(){return this->BlockSize;}
 
-    //Getter
-    unsigned int getDiskSignature(){ return diskSignature; }
-    //Setter
-
-
-    void setDiskSignature(unsigned int diskSignature){this->diskSignature = diskSignature;}
 
 private:
     partition Partitions[4];
-    unsigned int diskSignature; //normalerweise nur in Windows
     const int identificationCode = 0xAA55;
     unsigned int Blöcke;
-    SpeicherSystem System;
-
+    unsigned int BlockSize;
 
 };
 
