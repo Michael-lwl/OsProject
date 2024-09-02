@@ -1,6 +1,7 @@
-#include "./data.h"
+#include "./../../include/core/data.h"
 #include <cmath>
 #include <iostream>
+#include <memory>
 
 #define SetBit(Arr, b) (((Arr)[(b) / 8]) |= (1 << ((b) % 8)))
 #define ClrBit(Arr, b) (((Arr)[(b) / 8]) &= ~(1 << ((b) % 8)))
@@ -83,12 +84,12 @@ class Hamming : public Data {
                 return -1;
             return checkAndCorrectData(data);
         }
-        Array* getData(Array* encodedData){
+        std::unique_ptr<Array> getData(Array* encodedData){
             if (encodedData == nullptr)
                 return nullptr;
             return readData(encodedData);
         }
-        Array* encodeData(Array* data){
+        std::unique_ptr<Array> encodeData(Array* data){
             if (data == nullptr)
                 return nullptr;
             if (data->getLength() > getDataLength()){
@@ -125,11 +126,11 @@ class Hamming : public Data {
             return -1; // Error not correctable
         }
 
-        Array* readData(Array* encodedData) {
+        std::unique_ptr<Array> readData(Array* encodedData) {
             const int numberParityBits = calcParityBitsFromTotal(encodedData->getLength());
             const int numberDataBits = encodedData->getLength() - numberParityBits;
 
-            auto output = new Array(numberDataBits);
+            auto output = std::make_unique<Array>(numberDataBits);
 
             int j = 0;
             for (unsigned int i = 1; i <= encodedData->getLength(); i++)
@@ -146,9 +147,9 @@ class Hamming : public Data {
             return output;
         }
 
-        Array* writeHammingCode(Array* data) {
+        std::unique_ptr<Array> writeHammingCode(Array* data) {
             int numberDataBits = data->getLength();
-            auto hammingArray = new Array(sizeOfHammingArrayInBytes(numberDataBits));
+            auto hammingArray = std::make_unique<Array>(sizeOfHammingArrayInBytes(numberDataBits));
 
             const int numberParityBits = getNumberParityBits(numberDataBits);
             const int totalBits = numberDataBits + numberParityBits;

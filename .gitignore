@@ -33,3 +33,7 @@ bin/*
 *.out
 *.app
 *.sh
+
+# IDE folder
+.idea/*
+.vscode/*
