@@ -218,10 +218,7 @@ bool INodeSystem::defragDisk() {
     INode file = this->iNodes[i];
       if (file.getFilePath() == nullptr || file.getFlags() == 0 || file.getFileSizeInBytes() == 0)
         continue;
-      cout << "File: " << &file
-          << "\nFilesize: " << file.getFileSizeInBytes() << endl;
       std::unique_ptr<Array> data = file.getData();
-      cout << "DataLen: " << data->getLength() << endl;
       TempINode tmp = {&file, std::move(data)};
       usedFiles.push_back(tmp);
   }
@@ -233,7 +230,8 @@ bool INodeSystem::defragDisk() {
   showDefragMsg(50);
   // Clearing data!
   for (size_t i = 0; i < dataBlockCount; i++) {
-      new (getDataBlock(i)) DataBlock(DATA_BLOCK_BLOCK_SIZE);
+      if (getDataBlock(i) != nullptr && getDataBlock(i)->status != RESERVED)
+        new (getDataBlock(i)) DataBlock(DATA_BLOCK_BLOCK_SIZE);
   }
   showDefragMsg(75);
   // Setting all data
@@ -246,19 +244,33 @@ bool INodeSystem::defragDisk() {
     size_t fullBlocks = len / DATA_BLOCK_BLOCK_SIZE;
     size_t remainder = len % DATA_BLOCK_BLOCK_SIZE;
     size_t totalBlocks = fullBlocks + (remainder > 0 ? 1 : 0);
-    std::vector<DataBlock*> dbs;
-    dbs.reserve(totalBlocks);
     unsigned char* dataPtr = tmp.data->getArray();
     /// create Inode with size 0
     INode* node = new (getINode(curINode)) INode(tmp.inode.getFilePath(), tmp.inode.getFlags(), 0, this);
-
     ///Create the datablocks and append them to inode
-    for (size_t i = 0; i < len - DATA_BLOCK_BLOCK_SIZE; i+= DATA_BLOCK_BLOCK_SIZE){
-        DataBlock* db = getDataBlock(curBlock);
-        Array* curData = new Array(DATA_BLOCK_BLOCK_SIZE, dataPtr, MemAllocation::DONT_DELETE);
+    DataBlock* db = nullptr;
+    Array* curData = nullptr;
+    for (size_t i = 0; i < totalBlocks && curBlock < this->dataBlockCount; i++){
+        // if (curBlock > this->dataBlockCount) {
+        //     cerr << "Filesystem is corrupt! Cannot find unused Blocks! Needs to be formatted!" << endl;
+        //     return false;
+        // }
+        do {
+            db = getDataBlock(curBlock++);
+        } while ((db == nullptr || db->status == Status::RESERVED) && curBlock < this->dataBlockCount);
+        if (db == nullptr) {
+            cerr << "Filesystem is corrupt! Cannot find unused Blocks! Needs to be formatted!" << endl;
+            return false;
+        }
+        size_t ARR_LEN = DATA_BLOCK_BLOCK_SIZE;
+        if (dataPtr + ARR_LEN > tmp.data->getLength() + tmp.data->getArray()) {
+            ARR_LEN = dataPtr - tmp.data->getArray();
+        }
+        new (db) DataBlock(DATA_BLOCK_BLOCK_SIZE);
+        curData = new Array(ARR_LEN, dataPtr, MemAllocation::DONT_DELETE);
         db->setData(curData);
         db->status = Status::USED;
-        dataPtr += DATA_BLOCK_BLOCK_SIZE;
+        dataPtr += ARR_LEN;
         node->appendDataBlock(db);
     }
   }

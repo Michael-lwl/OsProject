@@ -298,7 +298,7 @@ class INodeSystem : public System {
         float getFragmentation() override;
         bool defragDisk() override;
 
-        DataBlock* getNewDataBlock(unsigned char status = Status::RESERVED);
+        DataBlock* getNewDataBlock(unsigned char status = Status::USED);
         FirstIndirectBlock* getNewFirstIndirectBlock();
         SecondIndirectBlock* getNewSecondIndirectBlock();
         ThirdIndirectBlock* getNewThirdIndirectBlock();

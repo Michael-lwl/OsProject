@@ -9,12 +9,16 @@ This Implements the setData(Array* data) methods for all (non-Abstract) Blocks
 
 bool DataBlock::setData(Array *data) {
   const unsigned int dataLen = data->getLength();
+  if (dataLen == 0) {
+      std::memset(this->data, 0, BLOCK_SIZE);
+      return true;
+  }
   if (dataLen > BLOCK_SIZE) {
     std::cerr << "Cannot save data in this block: Capacity is too small!"
               << std::endl;
     return false;
   }
-  std::strncpy((char *)this->data, (const char *)data, dataLen);
+  std::strncpy((char *)this->data, (const char *)data->getArray(), dataLen);
   for (unsigned int i = dataLen + 1; i < BLOCK_SIZE; i++) {
     this->data[i] = 0;
   }
@@ -95,6 +99,7 @@ Array FirstIndirectBlock::getData() {
 }
 
 bool FirstIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) {
+  (void) system;
   unsigned long curCap = this->getLength();
   if (curCap >= this->getCapacity()) {
     return false;
