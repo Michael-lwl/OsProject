@@ -62,11 +62,11 @@ Eintrag.lastSektor = createSector(getSectorCount(Eintrag) + getBlöcke());
 Eintrag.sectorsCount = getSectorCount(Eintrag);
     if(Partitions[0].firstSektor != Partitions[0].startPtr ){
         Eintrag.startPtr = Eintrag.firstSektor;
-        std::cout << 'Der Startpointer wurde zum ersten Mal erfolgereich gesetzt' << std::endl;
+        std::cout << "Der Startpointer wurde zum ersten Mal erfolgereich gesetzt" << std::endl;
     }
     else{
     Eintrag.startPtr = Partitions[0].startPtr;
-        std::cout << 'Der Startpointer wurde erfolgereich gesetzt' << std::endl;
+        std::cout << "Der Startpointer wurde erfolgereich gesetzt" << std::endl;
     }
 Eintrag.system = createSystem(System,getBlöcke(),dataHandler); //Todo Speichergröße annehmenb
     Eintrag.isBootable = checkbootable(Eintrag);
@@ -74,14 +74,16 @@ Eintrag.system = createSystem(System,getBlöcke(),dataHandler); //Todo Speicherg
 for(int i = 0; i < 4; i++){
 if(Partitions[i].firstSektor == NULL || Partitions[i].lastSektor == NULL){
  Partitions[i] = Eintrag;
-    std::cout << 'Die Partition wurde erfolgreich an der Stelle' + i  + 'weggeschrieben' << std::endl;
+    std::cout << "Die Partition wurde erfolgreich an der Stelle" << i  <<"weggeschrieben" << std::endl;
  break;
  }
 }
 }
 unsigned char checkbootable(partition E){
 //Todo check if bootable
-return 0x80;
+    if(E.firstSektor != NULL || E.lastSektor != NULL) {
+        return 0x80;
+    }else{return 0;}
 }
 System*  createSystem(SpeicherSystem System, unsigned int Speicher,Data* datahandler){
 if(System == BS_FAT){return bootBSFat(this->BlockSize,Speicher,datahandler);}
@@ -96,7 +98,8 @@ return (E.lastSektor->c * maxHeads + E.lastSektor->h) * maxSectors + ( E.lastSek
 
 
     CHS* createSector(unsigned int block) {
-    CHS* sector;
+    CHS* sector = {};
+
     const unsigned int maxBlocks = maxCylinders * maxHeads * maxSectors;
 
     if (block >= maxBlocks) {
@@ -116,7 +119,7 @@ return (E.lastSektor->c * maxHeads + E.lastSektor->h) * maxSectors + ( E.lastSek
 
 
 bool boot(int bIndex = 0){
-if(Partitions[bIndex].isBootable != 0x80){
+if(Partitions[bIndex].isBootable != 0){
 return Partitions[bIndex].isBootable != 1 && Partitions[bIndex].system->boot();
 }
 return 1;}

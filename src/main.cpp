@@ -14,7 +14,7 @@ void simpleAndClean(void *ptr) {
   if (ptr != nullptr)
     free(ptr);
 }
-
+/*
 int colouredOutputTest() {
   std::cout << colorize("T", Color::BLUE) << "es" << colorize("t", Color::RED)
             << std::endl;
@@ -97,7 +97,7 @@ int test_BsFat() {
   delete pFat;
 
   return 0;
-}
+} */
 int test_mbr() {
   Master_Boot_Record m(2000,512);
   SpeicherSystem b = BS_FAT;
@@ -109,11 +109,12 @@ int test_mbr() {
 
 const size_t STD_BLOCK_SIZE = 4 * getSizeInByte(ByteSizes::KB);
 
-int main(int argc, char **argv) {
-    (void) argc;
+int main() {
+ /*   int argc, char **argv
+  *   (void) argc;
     (void) argv;
   std::cerr << STD_BLOCK_SIZE << std::endl;
-  /*unsigned char* FestePlatte;
+ unsigned char* FestePlatte;
   if (hasFile) {
       FestePlatte = readFile(filename);
   } else {
@@ -127,5 +128,7 @@ int main(int argc, char **argv) {
   INodeSystem* inode1 = new (usableDrive) INodeSystem()
   mbr.addSystem(festePlatte[0]);*/
   //return test_BsFat();
+  std::cout << "hi";
+ // std::cout << "hi";
   return test_mbr();
 }
