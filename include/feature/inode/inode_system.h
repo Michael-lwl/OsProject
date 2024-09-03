@@ -59,6 +59,9 @@ class INode : public File {
                 ctime = now_t_t;
                 atime = now_t_t;
                 this->system = system;
+                for (size_t i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
+                    datablocks[i] = nullptr;
+                }
                 this->firstIndirectionBlock = nullptr;
                 this->secondIndirectionBlock = nullptr;
                 this->thirdIndirectionBlock = nullptr;
@@ -289,7 +292,7 @@ class INodeSystem : public System {
         /// Returns the file associated with the specified path.
         /// Might return null!
         std::shared_ptr<File> getFile(std::string *filePath) override;
-        /// Returns the file with the INodes' id.
+        /// Returns the file via the INodes' id.
         /// Might return null!
         std::shared_ptr<File> getFile(unsigned long iNodeId);
         float getFragmentation() override;
@@ -336,7 +339,7 @@ class INodeSystem : public System {
 
         std::shared_ptr<File> getChild(Directory* directory,
                                          const std::string &fileName);
-
+        INode* findFile(std::string* filePath);
 
         INode* iNodes;
 };

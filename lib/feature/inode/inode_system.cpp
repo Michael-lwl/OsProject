@@ -1,26 +1,22 @@
 #include "./../../../include/feature/inode/inode_system.h"
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <vector>
 
 /// Deletes the file with the specified path, and only the specified file
 bool INodeSystem::deleteFile(std::string *filePath) {
-  std::shared_ptr<File> mFile = getFile(filePath);
-  if (mFile == nullptr) {
+  INode* file = findFile(filePath);
+  if (file == nullptr) {
     std::cerr << "File \"" << filePath << "\" does not exist!" << std::endl;
     return false;
   }
   std::cout << "Deleting File \"" << *filePath << "\"." << std::endl;
-  INode *file = static_cast<INode *>(mFile.get());
   file->resizeFile(0);
   file->setFlags(0);
   file->rename(nullptr);
   new (file) INode(nullptr, 0, 0, this);
-  std::cout << "After \"Deletion\":"
-            << "\n\tfilesize:  " << file->getFileSizeInBytes()
-            << "\n\tfileflags: " << file->getFlags()
-            << std::endl;
   return true;
 }
 
@@ -124,36 +120,43 @@ bool INodeSystem::saveInFile(std::string *filePath,
 /// Might return null!
 std::shared_ptr<File> INodeSystem::getFile(std::string *filePath) {
   using namespace std;
-  if (filePath == nullptr || filePath->empty()) {
-    cerr << "Cannot find file: Filepath is empty or null!" << endl;
-    return nullptr;
-  }
-  vector<string> foldersNFile = splitAt(filePath, '/');
-  shared_ptr<File> curFile;
+  INode* curFile = findFile(filePath);
 
-  if (foldersNFile.size() > 1) {
-    curFile = getRoot();
-    for (const string &f : foldersNFile) {
-      if (!Directory::isDirectory(curFile.get())) {
-        return nullptr;
-      }
-      Directory *dir = static_cast<INodeDirectory *>(static_cast<INode *>(curFile.get()));
-      curFile = getChild(dir, f);
-      if (curFile == nullptr) {
-        return nullptr;
-      }
-    }
-  } else {
-    for (size_t i = 0; i < iNodeCount; i++) {
-      if (this->getINode(i)->getFlags() != 0 && this->getINode(i)->getFilePath()->compare(*filePath)) {
-        curFile = std::make_shared<INode>(this->getINode(i));
-      }
-    }
-  }
   time_t now_t_t = getCurrentTime();
-  dynamic_pointer_cast<INode>(curFile)->setAtime(now_t_t);
+  curFile->setAtime(now_t_t);
 
-  return curFile;
+  return std::make_shared<INode>(curFile);
+}
+
+INode* INodeSystem::findFile(std::string* filePath) {
+    using namespace std;
+    if (filePath == nullptr || filePath->empty()) {
+      cerr << "Cannot find file: Filepath is empty or null!" << endl;
+      return nullptr;
+    }
+    vector<string> foldersNFile = splitAt(filePath, '/');
+    shared_ptr<File> curFile;
+
+    if (foldersNFile.size() > 1) {///currently no directory support
+      curFile = getRoot();
+      for (const string &f : foldersNFile) {
+        if (!Directory::isDirectory(curFile.get())) {
+          return nullptr;
+        }
+        Directory *dir = static_cast<INodeDirectory *>(static_cast<INode *>(curFile.get()));
+        curFile = getChild(dir, f);
+        if (curFile == nullptr) {
+          return nullptr;
+        }
+      }
+    } else {
+      for (size_t i = 0; i < iNodeCount; i++) {
+        if (this->getINode(i)->getFlags() != 0 && this->getINode(i)->getFilePath()->compare(*filePath)) {
+          return this->getINode(i);
+        }
+      }
+    }
+    return nullptr;
 }
 
 /// Returns the file with the INodes' id.
@@ -213,7 +216,7 @@ bool INodeSystem::defragDisk() {
   // Collect all used files
   for (unsigned int i = 0; i < iNodeCount; i++) {
     INode file = this->iNodes[i];
-      if (file.getFilePath() == nullptr || file.getFlags() == 0)
+      if (file.getFilePath() == nullptr || file.getFlags() == 0 || file.getFileSizeInBytes() == 0)
         continue;
       cout << "File: " << &file
           << "\nFilesize: " << file.getFileSizeInBytes() << endl;
