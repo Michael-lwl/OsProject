@@ -1,4 +1,5 @@
 #include "./../../../include/feature/inode/inode_system.h"
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -91,6 +92,7 @@ std::unique_ptr<Array> INode::getData() {
       this->thirdIndirectionBlock};
 
   for (size_t i = 0; i < INDIRECTION_BLOCK_DEPTH; i++) {
+    if (indirBlocks[i] == nullptr) break;
     Array curData = indirBlocks[i]->getData();
     size_t remainingSpace = dataLen - counter;
     if (curData.getLength() <= remainingSpace) {
@@ -117,24 +119,31 @@ std::unique_ptr<Array> INode::getData() {
 
 bool INode::trimToSize(unsigned long newFileSizeInBytes) {
   if (newFileSizeInBytes == 0) {
-      for (size_t i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
-          if (datablocks[i] != nullptr) {
-            datablocks[i]->setData(&Array::EMPTY_ARRAY);
-            datablocks[i] = nullptr;
-          }
+    for (size_t i = 0; i < DIRECT_DATA_BLOCK_COUNT; i++) {
+      if (this->datablocks[i] != nullptr) {
+        this->datablocks[i]->setData(&Array::EMPTY_ARRAY);
+        this->datablocks[i]->status = Status::FREE;
+        this->datablocks[i] = nullptr;
       }
-      if (firstIndirectionBlock != nullptr) {
-          firstIndirectionBlock->trimToSize(0);
-          firstIndirectionBlock = nullptr;
-      }
-      if (secondIndirectionBlock != nullptr) {
-          secondIndirectionBlock->trimToSize(0);
-          secondIndirectionBlock = nullptr;
-      }
-      if (thirdIndirectionBlock != nullptr) {
-          thirdIndirectionBlock->trimToSize(0);
-          thirdIndirectionBlock = nullptr;
-      }
+    }
+    if (this->firstIndirectionBlock != nullptr) {
+      this->firstIndirectionBlock->trimToSize(0);
+      this->firstIndirectionBlock->status = Status::FREE;
+      this->firstIndirectionBlock = nullptr;
+    }
+    if (this->secondIndirectionBlock != nullptr) {
+      this->secondIndirectionBlock->trimToSize(0);
+      this->secondIndirectionBlock->status = Status::FREE;
+      this->secondIndirectionBlock = nullptr;
+    }
+    if (this->thirdIndirectionBlock != nullptr) {
+      this->thirdIndirectionBlock->trimToSize(0);
+      this->thirdIndirectionBlock->status = Status::FREE;
+      this->thirdIndirectionBlock = nullptr;
+    }
+    this->setFileSizeInBytes(0);
+    this->setFlags(0);
+    return true;
   }
   size_t fileSizeInBytes = getFileSizeInBytes();
   if (fileSizeInBytes < newFileSizeInBytes)
@@ -157,13 +166,22 @@ bool INode::trimToSize(unsigned long newFileSizeInBytes) {
   if (firstIndirectionBlock != nullptr && (newBlockCount < firstIndirectionBlock->getCapacity() || newBlockCount < firstIndirectionBlock->getLength())) {
     firstIndirectionBlock->trimToSize(newBlockCount);
   }
+  if (newBlockCount == 0) {
+    firstIndirectionBlock = nullptr;
+  }
   newBlockCount -= FirstIndirectBlock::CAPACITY(system->BLOCK_SIZE);
   if (secondIndirectionBlock != nullptr && (newBlockCount < secondIndirectionBlock->getCapacity() || newBlockCount < secondIndirectionBlock->getLength())) {
     secondIndirectionBlock->trimToSize(newBlockCount);
   }
+  if (newBlockCount == 0) {
+    secondIndirectionBlock = nullptr;
+  }
   newBlockCount -= SecondIndirectBlock::CAPACITY(system->BLOCK_SIZE);
   if (thirdIndirectionBlock != nullptr && (newBlockCount < thirdIndirectionBlock->getCapacity() || newBlockCount < thirdIndirectionBlock->getLength())) {
     thirdIndirectionBlock->trimToSize(newBlockCount);
+  }
+  if (newBlockCount == 0) {
+    thirdIndirectionBlock = nullptr;
   }
   setFileSizeInBytes(newFileSizeInBytes);
   return true;

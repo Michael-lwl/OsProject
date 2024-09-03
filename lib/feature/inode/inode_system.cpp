@@ -7,19 +7,20 @@
 /// Deletes the file with the specified path, and only the specified file
 bool INodeSystem::deleteFile(std::string *filePath) {
   std::shared_ptr<File> mFile = getFile(filePath);
-  std::cout << "Found File: " << *filePath << std::endl;
   if (mFile == nullptr) {
     std::cerr << "File \"" << filePath << "\" does not exist!" << std::endl;
     return false;
   }
-  std::cout << "Before cast: " << mFile.get() << std::endl;
+  std::cout << "Deleting File \"" << *filePath << "\"." << std::endl;
   INode *file = static_cast<INode *>(mFile.get());
-  std::cout << "After cast: " << file << std::endl;
-  std::cout << "Before resize: " << file->getFileSizeInBytes() << std::endl;
   file->resizeFile(0);
-  std::cout << "After resize: " << file->getFileSizeInBytes() << std::endl;
   file->setFlags(0);
-  std::cout << "Deleted File: " << *filePath << std::endl;
+  file->rename(nullptr);
+  new (file) INode(nullptr, 0, 0, this);
+  std::cout << "After \"Deletion\":"
+            << "\n\tfilesize:  " << file->getFileSizeInBytes()
+            << "\n\tfileflags: " << file->getFlags()
+            << std::endl;
   return true;
 }
 
@@ -133,21 +134,21 @@ std::shared_ptr<File> INodeSystem::getFile(std::string *filePath) {
   if (foldersNFile.size() > 1) {
     curFile = getRoot();
     for (const string &f : foldersNFile) {
-        if (!Directory::isDirectory(curFile.get())) {
-            return nullptr;
-        }
-        Directory *dir = static_cast<INodeDirectory *>(static_cast<INode *>(curFile.get()));
-        curFile = getChild(dir, f);
-        if (curFile == nullptr) {
-            return nullptr;
-        }
+      if (!Directory::isDirectory(curFile.get())) {
+        return nullptr;
+      }
+      Directory *dir = static_cast<INodeDirectory *>(static_cast<INode *>(curFile.get()));
+      curFile = getChild(dir, f);
+      if (curFile == nullptr) {
+        return nullptr;
+      }
     }
   } else {
-      for (size_t i = 0; i < iNodeCount; i++) {
-          if (this->getINode(i)->getFlags() != 0 && this->getINode(i)->getFilePath()->compare(*filePath)){
-              curFile = std::make_shared<INode>(this->getINode(i));
-          }
+    for (size_t i = 0; i < iNodeCount; i++) {
+      if (this->getINode(i)->getFlags() != 0 && this->getINode(i)->getFilePath()->compare(*filePath)) {
+        curFile = std::make_shared<INode>(this->getINode(i));
       }
+    }
   }
   time_t now_t_t = getCurrentTime();
   dynamic_pointer_cast<INode>(curFile)->setAtime(now_t_t);
@@ -174,27 +175,92 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
 }
 
 float INodeSystem::getFragmentation() {
-    long free = 0;
-    long freeMax = 0;
-    long counter = 0;
+  long free = 0;
+  long freeMax = 0;
+  long counter = 0;
 
-    for (unsigned int i = 0; i < this->dataBlockCount; i++) {
-        if (this->getDataBlock(i)->status == Status::FREE) {
-            free++;
-            counter++;
-            continue;
-        }
-        if (freeMax < counter)
-            freeMax = counter;
-        counter = 0;
+  for (unsigned int i = 0; i < this->dataBlockCount; i++) {
+    if (this->getDataBlock(i)->status == Status::FREE) {
+      free++;
+      counter++;
+      continue;
     }
-    if (free == 0)
-        return 0.0;
-    return ((float)freeMax / free);
+    if (freeMax < counter)
+      freeMax = counter;
+    counter = 0;
+  }
+  if (free == 0)
+    return 0.0;
+  return ((float)freeMax / free);
 }
 
 bool INodeSystem::defragDisk() {
-  // TODO: Implement the function!
+  using namespace std;
+  // Temp struct to keep in a single vector
+  typedef struct TempINode {
+    INode inode;
+    std::shared_ptr<Array> data;
+
+    TempINode(TempINode* tmpNode): inode(tmpNode->inode), data(tmpNode->data) {}
+    TempINode(INode inode, std::unique_ptr<Array> data): inode(inode), data(std::move(data)) {}
+
+  } TempINode;
+  const size_t DATA_BLOCK_BLOCK_SIZE = BLOCK_SIZE - sizeof(DataBlock);
+
+  showDefragMsg(0);
+  vector<TempINode> usedFiles;
+  usedFiles.reserve(this->iNodeCount / 2);
+  // Collect all used files
+  for (unsigned int i = 0; i < iNodeCount; i++) {
+    INode file = this->iNodes[i];
+      if (file.getFilePath() == nullptr || file.getFlags() == 0)
+        continue;
+      cout << "File: " << &file
+          << "\nFilesize: " << file.getFileSizeInBytes() << endl;
+      std::unique_ptr<Array> data = file.getData();
+      cout << "DataLen: " << data->getLength() << endl;
+      TempINode tmp = {&file, std::move(data)};
+      usedFiles.push_back(tmp);
+  }
+  showDefragMsg(25);
+  // Clearing INodes
+  for (size_t i = 0; i < iNodeCount; i++) {
+      new (getINode(i)) INode(nullptr, 0, 0, this);
+  }
+  showDefragMsg(50);
+  // Clearing data!
+  for (size_t i = 0; i < dataBlockCount; i++) {
+      new (getDataBlock(i)) DataBlock(DATA_BLOCK_BLOCK_SIZE);
+  }
+  showDefragMsg(75);
+  // Setting all data
+  size_t curINode = 0;
+  size_t curBlock = 0;
+  cout << "Filecount = " << usedFiles.size() << endl;
+  for (TempINode tmp : usedFiles) {
+    /// set all blocks
+    size_t len = tmp.data->getLength();
+    size_t fullBlocks = len / DATA_BLOCK_BLOCK_SIZE;
+    size_t remainder = len % DATA_BLOCK_BLOCK_SIZE;
+    size_t totalBlocks = fullBlocks + (remainder > 0 ? 1 : 0);
+    std::vector<DataBlock*> dbs;
+    dbs.reserve(totalBlocks);
+    unsigned char* dataPtr = tmp.data->getArray();
+    /// create Inode with size 0
+    INode* node = new (getINode(curINode)) INode(tmp.inode.getFilePath(), tmp.inode.getFlags(), 0, this);
+
+    ///Create the datablocks and append them to inode
+    for (size_t i = 0; i < len - DATA_BLOCK_BLOCK_SIZE; i+= DATA_BLOCK_BLOCK_SIZE){
+        DataBlock* db = getDataBlock(curBlock);
+        Array* curData = new Array(DATA_BLOCK_BLOCK_SIZE, dataPtr, MemAllocation::DONT_DELETE);
+        db->setData(curData);
+        db->status = Status::USED;
+        dataPtr += DATA_BLOCK_BLOCK_SIZE;
+        node->appendDataBlock(db);
+    }
+  }
+
+  showDefragMsg(100);
   return true;
 }
 
@@ -220,7 +286,8 @@ FirstIndirectBlock* INodeSystem::getNewFirstIndirectBlock() {
   if (output == nullptr) {
     return nullptr;
   }
-  return new (output) FirstIndirectBlock(BLOCK_SIZE);
+  std::cout << "getNewFirstIndirectBlock" << std::endl;
+  return new (output) FirstIndirectBlock(BLOCK_SIZE - sizeof(FirstIndirectBlock));
 }
 
 SecondIndirectBlock* INodeSystem::getNewSecondIndirectBlock() {
@@ -228,14 +295,14 @@ SecondIndirectBlock* INodeSystem::getNewSecondIndirectBlock() {
   if (output == nullptr) {
     return nullptr;
   }
-  return new (output) SecondIndirectBlock(BLOCK_SIZE);
+  return new (output) SecondIndirectBlock(BLOCK_SIZE - sizeof(SecondIndirectBlock));
 }
 ThirdIndirectBlock* INodeSystem::getNewThirdIndirectBlock() {
   DataBlock* output = getNewDataBlock(AdditionalStats::INDIRECT_3);
   if (output == nullptr) {
-      return nullptr;
+    return nullptr;
   }
-  return new (output) ThirdIndirectBlock(BLOCK_SIZE);
+  return new (output) ThirdIndirectBlock(BLOCK_SIZE - sizeof(ThirdIndirectBlock));
 }
 
 std::shared_ptr<File> INodeSystem::getRoot() {

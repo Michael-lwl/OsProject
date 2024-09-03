@@ -8,10 +8,10 @@
 class File {
     public:
         ///Creates an empty file (this->getFileSizeInByte() == 0)
-        File(const std::string* filePath, unsigned char flags): File(filePath, flags, 0){
+        File(std::string* filePath, unsigned char flags): File(filePath, flags, 0){
             //Create Empty File
         }
-        File(const std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes) {
+        File(std::string* filePath, unsigned char flags, unsigned long reservedSpaceInBytes) {
             this->filePath = filePath;
             this->flags = flags;
             (void) reservedSpaceInBytes;
@@ -42,10 +42,9 @@ class File {
         ///Returns this files' flags
         unsigned char getFlags() const {return flags;}
         ///Returns this files' path
-        const std::string* getFilePath() const {return filePath;}
+        std::string* getFilePath() const {return filePath;}
         ///Renames this file
         void rename(std::string* newFilePath){
-            delete filePath;
             filePath = newFilePath;
         }
 
@@ -64,7 +63,7 @@ class File {
 
         ///Flags like SYSTEM, ASCII, IS_TEMP, IS_DIR
         unsigned char flags;
-        const std::string* filePath;
+        std::string* filePath;
 
 };
 

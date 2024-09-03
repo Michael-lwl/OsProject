@@ -98,7 +98,7 @@ class IndirectBlock {
 class FirstIndirectBlock : public IndirectBlock, public Block {
     public:
         FirstIndirectBlock(size_t blockSize): Block(blockSize) {
-            data = new (static_cast<void*>(this + sizeof(FirstIndirectBlock))) DataBlock*[CAPACITY(blockSize)];
+            data = new (static_cast<void*>(this + sizeof(FirstIndirectBlock))) DataBlock*[blockSize];
             status = AdditionalStats::INDIRECT_1;
             // Initialize the blocks array to nullptr
             size_t numPointers = blockSize / sizeof(DataBlock*);
@@ -131,7 +131,7 @@ class FirstIndirectBlock : public IndirectBlock, public Block {
 class SecondIndirectBlock : public IndirectBlock, public Block {
     public:
         SecondIndirectBlock(size_t blockSize) : Block(blockSize) {
-                data = new (static_cast<void*>(this + sizeof(SecondIndirectBlock))) FirstIndirectBlock*[CAPACITY(blockSize)];
+                data = new (static_cast<void*>(this + sizeof(SecondIndirectBlock))) FirstIndirectBlock*[blockSize];
                 status = AdditionalStats::INDIRECT_2;
                 // Initialize the blocks array to nullptr
                 size_t numPointers = blockSize / sizeof(FirstIndirectBlock*);
@@ -163,7 +163,7 @@ class SecondIndirectBlock : public IndirectBlock, public Block {
 class ThirdIndirectBlock : public IndirectBlock, public Block {
     public:
         ThirdIndirectBlock(size_t blockSize) : IndirectBlock(), Block(blockSize) {
-            data = new (static_cast<void*>(this + sizeof(ThirdIndirectBlock))) SecondIndirectBlock*[CAPACITY(blockSize)];
+            data = new (static_cast<void*>(this + sizeof(ThirdIndirectBlock))) SecondIndirectBlock*[blockSize];
             status = AdditionalStats::INDIRECT_3;
             // Initialize the blocks array to nullptr
             size_t numPointers = blockSize / sizeof(SecondIndirectBlock*);

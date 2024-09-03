@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -62,4 +63,8 @@ std::string colorize(std::string str, Color c);
 
 
 std::vector<std::string> splitAt(const std::string* str, const unsigned char splitter);
+
+inline void showDefragMsg(int percent) {
+    std::cout << "Defragmentation status:\t" << percent << "%" << std::endl;
+}
 #endif

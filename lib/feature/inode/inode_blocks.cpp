@@ -18,6 +18,11 @@ bool DataBlock::setData(Array *data) {
   for (unsigned int i = dataLen + 1; i < BLOCK_SIZE; i++) {
     this->data[i] = 0;
   }
+  if (dataLen > 0) {
+    this->status = Status::USED;
+  } else {
+    this->status = Status::FREE;
+  }
   return true;
 }
 
@@ -40,6 +45,7 @@ bool FirstIndirectBlock::setData(Array *data) {
       for (unsigned long i = 0; i < getLength(); i++) {
           if (this->data[i] != nullptr) {
               this->data[i]->setData(emptyData);
+              this->data[i]->status = Status::FREE;
               this->data[i] = nullptr;
           }
       }

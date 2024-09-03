@@ -193,11 +193,6 @@ float BsFat::getFragmentation()
     return ((float)freeMax / free);
 }
 
-void showDefragMsg(int percent)
-{
-    std::cout << "Defragmentation status:\t" << percent << "%" << std::endl;
-}
-
 bool BsFat::defragDisk() {
     using namespace std;
     showDefragMsg(0);

@@ -59,6 +59,9 @@ class INode : public File {
                 ctime = now_t_t;
                 atime = now_t_t;
                 this->system = system;
+                this->firstIndirectionBlock = nullptr;
+                this->secondIndirectionBlock = nullptr;
+                this->thirdIndirectionBlock = nullptr;
         }
 
         ~INode() = default;
@@ -72,7 +75,7 @@ class INode : public File {
 
         //Getter and Setter
         ///Returns this files' flags'
-        int getFlags() {return flags;}
+        unsigned char getFlags() {return flags;}
         ///Sets the Flags of this INode
         void setFlags(unsigned int flags) {this->flags = flags;}
         ///Returns the number of hardlinks
@@ -105,9 +108,13 @@ class INode : public File {
         ///Sets the last Accessed-Time of this INode
         void setAtime(std::time_t atime) {this->atime = atime;}
         DataBlock** getDatablocks() {return datablocks;}
+        void setDataBlocks(DataBlock** newDataBlocks);
         FirstIndirectBlock* getFirstIndirectionBlock() const {return firstIndirectionBlock;}
+        void setFirstIndirectionBlock(FirstIndirectBlock* newFib) {this->firstIndirectionBlock = newFib;}
         SecondIndirectBlock* getSecondIndirectionBlock() const {return secondIndirectionBlock;}
+        void setSecondIndirectionBlock(SecondIndirectBlock* newSib) {this->secondIndirectionBlock = newSib;}
         ThirdIndirectBlock* getThirdIndirectionBlock() const {return thirdIndirectionBlock;}
+        void setThirdIndirectionBlock(ThirdIndirectBlock* newTib) {this->thirdIndirectionBlock = newTib;}
 
     protected:
         ///Resizes this file if newFileSize < this->getFileSizeInBytes()
