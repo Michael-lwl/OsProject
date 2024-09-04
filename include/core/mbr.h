@@ -66,9 +66,9 @@ Master_Boot_Record(unsigned int Blöcke, int blocksize){
 this->Blöcke = Blöcke;
 this->BlockSize = blocksize;
 
-
 }
 void createPartition( SpeicherSystem System){
+
 partition Eintrag;
 Data *dataHandler = new Data_Impl(this->BlockSize);
 Eintrag.type = System;
@@ -108,14 +108,13 @@ else{throw("Das System konnte nicht erstellt werden");}
 }
 
 unsigned int getSectorCount(partition E){
-
-return (E.lastSektor->c * maxHeads + E.lastSektor->h) * maxSectors + ( E.lastSektor->s - 1);
+    if(E.firstSektor != NULL || E.lastSektor != NULL) { return (E.lastSektor->c * maxHeads + E.lastSektor->h) * maxSectors + ( E.lastSektor->s - 1); }
+    else { return 0; }
 };
 
 
     CHS* createSector(unsigned int block) {
     CHS* sector = {};
-
     const unsigned int maxBlocks = maxCylinders * maxHeads * maxSectors;
 
     if (block >= maxBlocks) {
