@@ -213,7 +213,7 @@ class INodeSystem : public System {
             return finalNumberOfInodes;
         }
 
-        static INodeSystem* create(unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+        static INodeSystem* create(void* memory, unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
             size_t inodeSystemSize = sizeof(INodeSystem);
             if (driveSize <= inodeSystemSize) {
                 return nullptr;
@@ -248,25 +248,9 @@ class INodeSystem : public System {
                 return nullptr;
             }
 
-            void* memory = ::operator new(driveSize);  // Raw memory allocation
-
             INodeSystem* inodeSystem = new (memory) INodeSystem(driveSize, blockSize, dataHandler, inodeCount);
 
             return inodeSystem;
-        }
-
-        INodeSystem(size_t driveSizeInBytes, size_t blockSize, Data* dataHandler, size_t iNodeCount) :
-            System(dataHandler, driveSizeInBytes, blockSize) ,
-            iNodeSize(getBytesPerInode(driveSizeInBytes)),
-            iNodeCount(iNodeCount),
-            dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize) {
-                iNodes = getINode(0);
-                for (size_t i = 0; i < iNodeCount; i++) {
-                    new (iNodes + i) INode(nullptr, 0, 0, this);
-                }
-                for (size_t i = 0; i < dataBlockCount; i++) {
-                    new (getDataBlock(i)) DataBlock(BLOCK_SIZE - sizeof(DataBlock));
-                }
         }
 
         ~INodeSystem() = default;
@@ -334,6 +318,21 @@ class INodeSystem : public System {
         const size_t iNodeCount;
         const size_t dataBlockCount;
     private:
+
+      INodeSystem(size_t driveSizeInBytes, size_t blockSize, Data* dataHandler, size_t iNodeCount) :
+        System(dataHandler, driveSizeInBytes, blockSize) ,
+        iNodeSize(getBytesPerInode(driveSizeInBytes)),
+        iNodeCount(iNodeCount),
+        dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize) {
+          iNodes = getINode(0);
+          for (size_t i = 0; i < iNodeCount; i++) {
+            new (iNodes + i) INode(nullptr, 0, 0, this);
+          }
+          for (size_t i = 0; i < dataBlockCount; i++) {
+            new (getDataBlock(i)) DataBlock(BLOCK_SIZE - sizeof(DataBlock));
+          }
+      }
+
         /// Returns this Systems rootDirectory
         std::shared_ptr<File> getRoot();
 
