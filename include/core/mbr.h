@@ -9,12 +9,6 @@
 #include "./../feature/fat/bs_system.h"
 #include "./../feature/inode/inode_system.h"
 
-const int BOOT = 0x0000;
-const int MBR_SIZE = 512;
-const int DATA_SIGNATURE = 0x01B8;
-// const int NULL = 0x001BC;
-
-
 /* const char BOOT = 0x0000;
 const int MBR_SIZE = 512;
 const short DATA_SIGNATURE = 0x01B8; */
@@ -53,25 +47,33 @@ struct Partition {
 class MBR{
 public:
 
-MBR(unsigned long MaxSpeicherplatz = 8455716863){
-    if(MaxSpeicherplatz > 8455716863){throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");}
-    else {
-        this->MaxSpeicherplatz = MaxSpeicherplatz;
+MBR(long MaxSpeicherplatz){
+this->MaxSpeicherplatz = MaxSpeicherplatz;
+}
+Partition createPartition(unsigned long long Speicherplatz ,SpeicherSystem System = BS_FAT, unsigned int BlockSize = 512){
+//Todo check Rest Speicherplatz
+if(Partitions[0].firstSektor != NULL && Partitions[0].lastSektor != NULL) {
+    unsigned long long LBA = checkLBA();
+    if(MaxSpeicherplatz < Speicherplatz + LBA ) {
+        throw std::out_of_range("Der gewünschte Speicherplatz übersteigt den Restspeicher des MBRs. Partition konnte nicht angelegt werden");
     }
 }
-Partition createPartition(unsigned int Speicherplatz ,SpeicherSystem System = BS_FAT, unsigned int BlockSize = 512){
-//Todo check Rest Speicherplatz
 Partition Eintrag = {};
-Data *dataHandler = new Data_Impl(BlockSize);
+//Data *dataHandler = new Data_Impl(this->BlockSize);
 Eintrag.type = System;
 Eintrag.startPtr = createstartSector();//Todo start ptr zeigen
 Eintrag.firstSektor = createSector( getStart()); //Todo First Sektor ermitteln
 Eintrag.lastSektor = createSector( getStart() + Speicherplatz );
-Eintrag.system = createSystem(System,Speicherplatz,dataHandler);
+//Eintrag.system = createSystem(System,Speicherplatz,dataHandler);
     Eintrag.isBootable = checkbootable(Eintrag);
     Eintrag.sectorsCount = Speicherplatz /BlockSize;
-    Partitions[ParitionEntries] = Eintrag;
-    ParitionEntries++; //TODO entfernen
+    for(int i = 0; i < 4; i++) {
+        if(Partitions[i].firstSektor == NULL && Partitions[i].lastSektor == NULL) {
+            Partitions[i] = Eintrag;
+            break;
+        }
+    }
+
     return Eintrag;
 }
 unsigned char checkbootable(Partition E){
@@ -80,15 +82,14 @@ unsigned char checkbootable(Partition E){
         return 0x80;
     }else{return 0;}
 }
-System*  createSystem(SpeicherSystem System, unsigned int Speicher,Data* datahandler,unsigned int BlockSize = 512){
-    void* memory = ::operator new(Speicher);
-if(System == BS_FAT){return bootBSFat(memory ,BlockSize,Speicher,datahandler);}
-else if(System = INODE){return bootINode(memory,BlockSize,Speicher,datahandler);}
-else{throw("Das System konnte nicht erstellt werden");}
-}
+//System*  createSystem(SpeicherSystem System, unsigned int Speicher,Data* datahandler){
+//    void* memory = ::operator new(Speicher);
+//(System == BS_FAT){return bootBSFat(memory ,this->BlockSize,Speicher,datahandler);}
+//else if(System = INODE){return bootINode(memory,this->BlockSize,Speicher,datahandler);}
+//else{throw("Das System konnte nicht erstellt werden");}
+//
 
-
-unsigned long getStart() {
+unsigned long long getStart() {
     if(Partitions[0].startPtr == NULL) {
         return 0;
     }
@@ -96,26 +97,27 @@ unsigned long getStart() {
         return checkLBA();
     }
 }
-unsigned long checkLBA() {
-    for(int i = 0; i < 4; i++) {
-        if(Partitions[i].lastSektor == NULL) {
-            int c = Partitions[i - 1].lastSektor->c;
-            int h = Partitions[i - 1].lastSektor->h;
-            int s = Partitions[i - 1].lastSektor->s ;
-            unsigned long Ergebnis = 512 * ((c * maxHeads + h) * maxSectors + ( s - 1 ));
+unsigned long long checkLBA(){
+    for(int i = 0; i < 5; i++) {
+        if(   i == 4 || Partitions[i].lastSektor == NULL ) {
+            long c = Partitions[i - 1].lastSektor->c;
+            long h = Partitions[i - 1].lastSektor->h;
+            long s = Partitions[i - 1].lastSektor->s ;
+            unsigned long long Ergebnis = 512 * ((c * maxHeads + h) * maxSectors + ( s - 1 ));
             return Ergebnis;
         }
-    } return 0;
+    }
 }
 
 
-    CHS* createSector(unsigned long speicherplatzInBytes, unsigned int BlockSize = 512) {
+    CHS* createSector(unsigned long long speicherplatzInBytes, unsigned int BlockSize = 512) {
     CHS* sector = new CHS ;
     unsigned int Speicherplatz = speicherplatzInBytes / BlockSize;
     unsigned long maxSpeicher =  maxCylinders * maxHeads * maxSectors; //Todo Restspeicher abziehen
     if ( Speicherplatz >= maxSpeicher) {
         throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
     }
+
 
 
     // Direkte Berechnung der CHS-Werte
@@ -128,7 +130,6 @@ unsigned long checkLBA() {
     return sector;
 
 }
-
 CHS* createstartSector() { //TODO ist richtig?
         if(Partitions[0].lastSektor == NULL && Partitions[0].firstSektor == NULL) {
            return  createSector(0);
@@ -145,31 +146,78 @@ if(Partitions[bIndex].isBootable != 0){
     return 0;
 }
 return 1;}
-
-unsigned long checkSizeReserviert() {
-        unsigned long MemoryAllocated = checkLBA();
-        std::cout << "Es  ist " << MemoryAllocated  << " Byte groß" << std::endl;
+unsigned long long checkSizeReserviert() {
+        unsigned long long MemoryAllocated = checkLBA();
+    std::cout << "Es  ist vereits " << MemoryAllocated  << " Byte reserviert" << std::endl;
         return MemoryAllocated;;
     }
-
-    int checkPartitionsize(Partition p) {
-        int c = p.lastSektor->c;
-        int h = p.lastSektor->h;
-        int s = p.lastSektor->s ;
-        unsigned long Ergebnis = 512 * ((c * maxHeads + h) * maxSectors + ( s - 1 ));
+    unsigned long long checkPartitionsize(Partition p) {
+ unsigned long long c1 = p.firstSektor->c;
+ unsigned long long h1 = p.firstSektor->h;
+ unsigned long long s1 = p.firstSektor->s ;
+ unsigned long long c2 = p.lastSektor->c;
+ unsigned long long h2 = p.lastSektor->h;
+ unsigned long long s2 = p.lastSektor->s ;
+   unsigned long long c = c2 - c1;
+   unsigned long long h = h2 - h1;
+   unsigned long long s = s2 - s1;
+        unsigned long long Ergebnis = 512 * ((c * maxHeads + h) * maxSectors + ( s -1  ));
+    std::cout << "Die Partition ist " << Ergebnis  << " Byte groß" << std::endl;
         return Ergebnis;
     }
 
+    void deletePartition(int i) {
+    unsigned long long reserved[4] = {0};
+    if(Partitions[i].firstSektor != NULL && Partitions[i].lastSektor != NULL && i < 4 && i > 0) {
+        throw std::out_of_range("Es gibt diesen Eintrag nicht");
+    }
+    else {
+        Partition p[] = {0};
 
-unsigned int getMaxSpeicherplatz(){return this->MaxSpeicherplatz;}
+        for (int j = 0; j < 4 - 1; j++) {
+
+            if(i != j) {
+                reserved[j] = checkPartitionsize(getSingularPartition(j ));
+
+            }
+            else if (i == j && i < 5) {
+                if(Partitions[j + 1].firstSektor != NULL) {
+                    reserved[j] = checkPartitionsize(getSingularPartition(j + 1));
+                    i++;
+                }
+            }
+
+
+        }
+        Partitions[0] = {0};
+        Partitions[1] = {0};
+        Partitions[2] = {0};
+        Partitions[3] = {0};
+        for(int k = 0; k < 4; k++) {
+
+            Partitions[k] = createPartition( reserved[k]);
+
+        }
+
+    }
+}
+
+
+unsigned long long getMaxSpeicherplatz(){return this->MaxSpeicherplatz;}
 Partition* getPartition(){ return Partitions;}
-
 Partition getSingularPartition(int i = 0) {
         if(i > 3) {
             throw std::out_of_range("Partition index übersteigt den Maximalenwert von 4");
         }
         return Partitions[i];
     }
+    System*  createSystem(SpeicherSystem System, unsigned int Speicher,Data* datahandler,unsigned int BlockSize = 512){
+        void* memory = ::operator new(Speicher);
+        if(System == BS_FAT){return bootBSFat(memory ,BlockSize,Speicher,datahandler);}
+        else if(System == INODE){return bootINode(memory,BlockSize,Speicher,datahandler);}
+        else{throw("Das System konnte nicht erstellt werden");}
+    }
+
 
     BsFat* bootBSFat(void* memory,unsigned int blockSize,unsigned int memorySize, Data *dataHandler){
         BsFat* B = BsFat::create(memory, memorySize,blockSize, dataHandler);
