@@ -237,7 +237,6 @@ bool INodeSystem::defragDisk() {
   // Setting all data
   size_t curINode = 0;
   size_t curBlock = 0;
-  cout << "Filecount = " << usedFiles.size() << endl;
   for (TempINode tmp : usedFiles) {
     /// set all blocks
     size_t len = tmp.data->getLength();
@@ -301,7 +300,6 @@ FirstIndirectBlock* INodeSystem::getNewFirstIndirectBlock() {
   if (output == nullptr) {
     return nullptr;
   }
-  std::cout << "getNewFirstIndirectBlock" << std::endl;
   return new (output) FirstIndirectBlock(BLOCK_SIZE - sizeof(FirstIndirectBlock));
 }
 

@@ -107,7 +107,8 @@ int test_INodes() {
   int blockSize = 512;
   int memorySize = 1048576; // 8 MebiByte
   Data *dataHandler = new Data_Impl(blockSize);
-  INodeSystem *iNodeSystem = INodeSystem::create(memorySize, blockSize, dataHandler);
+  void* memory = ::operator new(memorySize);  // Raw memory allocation
+  INodeSystem *iNodeSystem = INodeSystem::create(memory, memorySize, blockSize, dataHandler);
   // createBsFat(memorySize, blockSize);
   if (!iNodeSystem) {
     cerr << "Failed to create INodeSystem." << endl;

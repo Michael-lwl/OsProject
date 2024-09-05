@@ -11,6 +11,7 @@ bool DataBlock::setData(Array *data) {
   const unsigned int dataLen = data->getLength();
   if (dataLen == 0) {
       std::memset(this->data, 0, BLOCK_SIZE);
+      this->status = Status::FREE;
       return true;
   }
   if (dataLen > BLOCK_SIZE) {
@@ -22,11 +23,7 @@ bool DataBlock::setData(Array *data) {
   for (unsigned int i = dataLen + 1; i < BLOCK_SIZE; i++) {
     this->data[i] = 0;
   }
-  if (dataLen > 0) {
-    this->status = Status::USED;
-  } else {
-    this->status = Status::FREE;
-  }
+  this->status = Status::USED;
   return true;
 }
 
