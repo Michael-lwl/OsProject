@@ -149,7 +149,7 @@ return 1;}
 
 
   INodeSystem* bootINode(void* memory,int blockSize, int memorySize, Data *dataHandler){
-   INodeSystem* I = INodeSystem::create(memorySize,blockSize, dataHandler);
+   INodeSystem* I = INodeSystem::create(memory,memorySize,blockSize, dataHandler);
   return I;
  }
 
