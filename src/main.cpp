@@ -9,22 +9,20 @@
 #include <string.h>
 #include <string>
 
-#define TODO std::cout << "TODO: implement the rest" << std::endl;
+#define TODO *SysOut() << "TODO: implement the rest" << std::endl;
 void simpleAndClean(void *ptr) {
   if (ptr != nullptr)
     free(ptr);
 }
 
 int colouredOutputTest() {
-  std::cout << colorize("T", Color::BLUE) << "es" << colorize("t", Color::RED)
+  *SysOut() << colorize("T", Color::BLUE) << "es" << colorize("t", Color::RED)
             << std::endl;
   return 0;
 }
 
-int test_BsFat() {
+int test_BsFat(unsigned long long memorySize, BlockSizes blockSize = BlockSizes::B_512) {
   using namespace std;
-  int blockSize = 512;
-  int memorySize = 1048576; // 8 MebiByte
   Data *dataHandler = new Data_Impl(blockSize);
   // Allocate memory for the entire structure (BsFat + all clusters + data blocks)
   void* memory = ::operator new(memorySize);  // Raw allocation
@@ -44,16 +42,16 @@ int test_BsFat() {
   std::string filename2 = "file2.txt";
   unsigned long long file2Size = 50 * blockSize;
 
-  cout << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
+  *SysOut() << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
        << "\nBlockSize: " << blockSize << "\nBlockCount: " << pFat->getBlockCount() <<endl;
 
-  cout << "Creating File 1" << endl;
+  *SysOut() << "Creating File 1" << endl;
   shared_ptr<File> file1 =
       pFat->createFile(&filename1, file1Size, Flags::SYSTEM | Flags::IS_TEMP);
   if (file1 == nullptr) {
     cerr << "Failed to create file1.tmp." << endl;
   }
-  cout << "Created File 1" << endl;
+  *SysOut() << "Created File 1" << endl;
   pFat->show();
 
   shared_ptr<File> file2 =
@@ -62,7 +60,7 @@ int test_BsFat() {
     cerr << "Failed to create file2.txt." << endl;
   }
   pFat->show();
-  cout << "--------------------------------------------------------------------"
+  *SysOut() << "--------------------------------------------------------------------"
           "--------------------------------------------------------------------"
        << endl;
 
@@ -79,33 +77,31 @@ int test_BsFat() {
   pFat->show();
   if (file1 != nullptr) {
     // Delete the first file
-    cout << "Deleting file1" << endl;
+    *SysOut() << "Deleting file1" << endl;
     pFat->deleteFile(&filename1);
     pFat->show();
   }
 
   // Check fragmentation before defragmentation
   float fragmentationBefore = pFat->getFragmentation();
-  cout << "Fragmentation before defrag: " << fragmentationBefore << endl;
+  *SysOut() << "Fragmentation before defrag: " << fragmentationBefore << endl;
 
   // Defragment the disk
-  cout << "Defragmenting disk" << endl;
+  *SysOut() << "Defragmenting disk" << endl;
   pFat->defragDisk();
   pFat->show();
 
   // Check fragmentation after defragmentation
   float fragmentationAfter = pFat->getFragmentation();
-  cout << "Fragmentation after defrag: " << fragmentationAfter << endl;
+  *SysOut() << "Fragmentation after defrag: " << fragmentationAfter << endl;
 
   delete pFat;
 
   return 0;
 }
 
-int test_INodes() {
+int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes::B_512) {
   using namespace std;
-  int blockSize = 512;
-  int memorySize = 1048576; // 8 MebiByte
   Data *dataHandler = new Data_Impl(blockSize);
   void* memory = ::operator new(memorySize);  // Raw memory allocation
   INodeSystem *iNodeSystem = INodeSystem::create(memory, memorySize, blockSize, dataHandler);
@@ -123,27 +119,27 @@ int test_INodes() {
   std::string filename2 = "file2.txt";
   unsigned long long file2Size = 50 * blockSize;
 
-  cout << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
+  *SysOut() << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
        << "\nBlockSize: " << blockSize << "\nBlockCount: " << iNodeSystem->getBlockCount() <<endl;
 
-  cout << "Creating File 1" << endl;
+  *SysOut() << "Creating File 1" << endl;
   shared_ptr<File> file1 =
       iNodeSystem->createFile(&filename1, file1Size, Flags::SYSTEM | Flags::IS_TEMP);
   if (file1 == nullptr) {
     cerr << "Failed to create file1.tmp." << endl;
   }
-  cout << "Created File 1" << endl;
+  *SysOut() << "Created File 1" << endl;
   iNodeSystem->show();
 
-  cout << "Creating File 2" << endl;
+  *SysOut() << "Creating File 2" << endl;
   shared_ptr<File> file2 =
       iNodeSystem->createFile(&filename2, file2Size, Flags::ASCII);
   if (file2 == nullptr) {
     cerr << "Failed to create file2.txt." << endl;
   }
-  cout << "Created File 2" << endl;
+  *SysOut() << "Created File 2" << endl;
   iNodeSystem->show();
-  cout << "--------------------------------------------------------------------"
+  *SysOut() << "--------------------------------------------------------------------"
           "--------------------------------------------------------------------"
        << endl;
 
@@ -160,23 +156,23 @@ int test_INodes() {
   iNodeSystem->show();
   if (file1 != nullptr) {
     // Delete the first file
-    cout << "Deleting file1" << endl;
+    *SysOut() << "Deleting file1" << endl;
     iNodeSystem->deleteFile(&filename1);
     iNodeSystem->show();
   }
 
   // Check fragmentation before defragmentation
   float fragmentationBefore = iNodeSystem->getFragmentation();
-  cout << "Fragmentation before defrag: " << fragmentationBefore << endl;
+  *SysOut() << "Fragmentation before defrag: " << fragmentationBefore << endl;
 
   // Defragment the disk
-  cout << "Defragmenting disk" << endl;
+  *SysOut() << "Defragmenting disk" << endl;
   iNodeSystem->defragDisk();
   iNodeSystem->show();
 
   // Check fragmentation after defragmentation
   float fragmentationAfter = iNodeSystem->getFragmentation();
-  cout << "Fragmentation after defrag: " << fragmentationAfter << endl;
+  *SysOut() << "Fragmentation after defrag: " << fragmentationAfter << endl;
 
   delete iNodeSystem;
 
@@ -203,7 +199,9 @@ int main(int argc, char **argv) {
   INodeSystem* inode1 = new (usableDrive) INodeSystem()
   mbr.addSystem(festePlatte[0]);*/
   int output = 0;
-  // output |= test_BsFat();
-  output |= test_INodes();
+  BlockSizes blockSize = BlockSizes::B_512;
+  unsigned long long memorySize = 8 * getSizeInByte(ByteSizes::MiB); // 8 MebiByte
+  output |= test_BsFat(memorySize, blockSize);
+  output |= test_INodes(memorySize, blockSize);
   return output;
 }

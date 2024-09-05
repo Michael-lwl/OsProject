@@ -232,7 +232,7 @@ class INodeSystem : public System {
 
             size_t remainingDataBlocks = driveSizeNoOverhead - reservedSpaceForINodes;
 
-            std::cout << "-------------------------------------------------------"
+            *SysOut() << "-------------------------------------------------------"
                           << "\nTotal size of drive:      " << driveSize
                           << "\nUsable size of drive:     " << driveSizeNoOverhead
                           << "\nINodeCount:               " << inodeCount

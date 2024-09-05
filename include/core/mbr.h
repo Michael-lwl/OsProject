@@ -24,7 +24,7 @@ struct CHS {
   unsigned char s;
 };
 
-struct partition {
+struct Partition {
   char isBootable;
   CHS *firstSektor;
   CHS *lastSektor;
@@ -33,28 +33,38 @@ struct partition {
   char type;
 };
 
-class Master_Boot_Record {
+enum SpeicherSystem {
+    BS_FAT,
+    INODE
+};
+
+const size_t MAX_PARTITION_COUNT = 4;
+
+class MBR {
 public:
-  Master_Boot_Record() {
+  MBR(unsigned long long driveSize) {
 
     // Todo Inputs für memorySize und BlockSize für die händische Abfrage
     // einfügen
-    bool boot() { return 1; }
   }
-  BsFat *bootBSFat(unsigned int blockSize, unsigned int memorySize,
-                   Data *dataHandler) {
-    BsFat *B = BsFat::create(memorySize, blockSize, dataHandler);
+  BsFat *bootBSFat(unsigned int blockSize, unsigned int memorySize, Data *dataHandler) {
+    void *memory = ::operator new(memorySize); // Raw allocation
+    BsFat *B = BsFat::create(memory, memorySize, blockSize, dataHandler);
     return B;
   }
 
-  //   INode* bootINode(int blockSize, int memorySize, Data *dataHandler){
-  //       INode* I = INode::create(memorySize,blockSize, dataHandler);
-  //       return I;
-  //     }
+   INodeSystem* bootINode(int blockSize, int memorySize, Data *dataHandler){
+    void *memory = ::operator new(memorySize); // Raw allocation
+    INodeSystem* I = INodeSystem::create(memory, memorySize,blockSize, dataHandler);
+    return I;
+   }
+
+   Partition* createPartition(unsigned long long memorySize, BlockSizes blockSize = BlockSizes::KIB_4,SpeicherSystem ss = SpeicherSystem::BS_FAT) {return nullptr;}
 
   // Getter
   unsigned int getSectorsCount() { return sectorsCount; }
   unsigned int getDiskSignature() { return diskSignature; }
+  Partition* getPartitions() {return partitions;}
   // Setter
 
   void setSectorcount(unsigned int sectorsCount) {
@@ -65,7 +75,7 @@ public:
   }
 
 private:
-  partition Partitions[4];
+  Partition partitions[MAX_PARTITION_COUNT];
   unsigned int sectorsCount;
   unsigned int diskSignature; // normalerweise nur in Windows
   const int identificationCode = 0xAA55;

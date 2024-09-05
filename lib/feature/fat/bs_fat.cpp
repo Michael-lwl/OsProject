@@ -21,15 +21,15 @@ char BsFat::getCharForObjective(BsCluster *cluster)
 }
 
 void BsFat::show() {
-    std::cout << colorize("|", Color::WHITE);
+    *SysOut() << colorize("|", Color::WHITE);
     for (unsigned int i = 0; i < this->getBlockCount(); i++)
     {
         BsCluster* c = this->getCluster(i);
         std::string str{this->getCharForObjective(c)};
-        std::cout << colorize(str, getColorForStatus(c->status));
-        std::cout << '|';
+        *SysOut() << colorize(str, getColorForStatus(c->status));
+        *SysOut() << '|';
     }
-    std::cout<<std::endl;
+    *SysOut()<<std::endl;
 }
 
 

@@ -3,6 +3,8 @@
 #include <vector>
 #include "./../include/utils.h"
 
+std::ostringstream* Output::os = nullptr;
+
 void safeFree(void *ptr)
 {
     if (ptr != nullptr)
