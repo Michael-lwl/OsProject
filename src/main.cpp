@@ -186,10 +186,16 @@ int test_INodes() {
 
 const size_t STD_BLOCK_SIZE = 4 * getSizeInByte(ByteSizes::KB);
 int test_mbr() {
-  Master_Boot_Record m(2000,512);
-  SpeicherSystem b = BS_FAT;
-  m.createPartition(b);
-  m.createPartition(b);
+  MBR mbr(8455716863);
+  std::cout << "Erstellung mBR erfolgreich" << std::endl;
+  mbr.createPartition(2000000);
+  std::cout << "Erstellung P1 erfolgreich" << std::endl;
+  mbr.createPartition(1000000);
+  std::cout << "Erstellung P1 erfolgreich" << std::endl;
+  Partition p = mbr.getSingularPartition(0);
+  std::cout << "Partition selektiert" << std::endl;
+  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p) << "Bytes" << std::endl;;
+
   return 1;
 }
 
