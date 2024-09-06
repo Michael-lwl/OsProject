@@ -7,7 +7,6 @@
 #include <cmath>
 #include <iostream>
 #include <ostream>
-#include <qt6/QtWidgets/qapplication.h>
 #include <string.h>
 #include <string>
 
@@ -80,13 +79,14 @@ int test_BsFat(unsigned long long memorySize, BlockSizes blockSize = BlockSizes:
   if (file1 != nullptr) {
     // Delete the first file
     *SysOut() << "Deleting file1" << endl;
+    file1.reset();
     pFat->deleteFile(&filename1);
     pFat->show();
   }
 
   // Check fragmentation before defragmentation
   float fragmentationBefore = pFat->getFragmentation();
-  *SysOut() << "Fragmentation before defrag: " << fragmentationBefore << endl;
+  *SysOut() << "Fragmentation before defrag BsFat: " << fragmentationBefore << endl;
 
   // Defragment the disk
   *SysOut() << "Defragmenting disk" << endl;
@@ -95,8 +95,9 @@ int test_BsFat(unsigned long long memorySize, BlockSizes blockSize = BlockSizes:
 
   // Check fragmentation after defragmentation
   float fragmentationAfter = pFat->getFragmentation();
-  *SysOut() << "Fragmentation after defrag: " << fragmentationAfter << endl;
+  *SysOut() << "Fragmentation after defrag BsFat: " << fragmentationAfter << endl;
 
+  file2.reset();
   delete pFat;
 
   return 0;
@@ -159,13 +160,14 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
   if (file1 != nullptr) {
     // Delete the first file
     *SysOut() << "Deleting file1" << endl;
+    file1.reset();
     iNodeSystem->deleteFile(&filename1);
     iNodeSystem->show();
   }
 
   // Check fragmentation before defragmentation
   float fragmentationBefore = iNodeSystem->getFragmentation();
-  *SysOut() << "Fragmentation before defrag: " << fragmentationBefore << endl;
+  *SysOut() << "Fragmentation before defrag INodeSystem: " << fragmentationBefore << endl;
 
   // Defragment the disk
   *SysOut() << "Defragmenting disk" << endl;
@@ -174,8 +176,9 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
 
   // Check fragmentation after defragmentation
   float fragmentationAfter = iNodeSystem->getFragmentation();
-  *SysOut() << "Fragmentation after defrag: " << fragmentationAfter << endl;
+  *SysOut() << "Fragmentation after defrag INodeSystem: " << fragmentationAfter << endl;
 
+  file2.reset();
   delete iNodeSystem;
 
   return 0;

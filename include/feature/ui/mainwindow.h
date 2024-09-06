@@ -1,6 +1,5 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
 #include <QMainWindow>
 #include <QApplication>
 #include <QWidget>
@@ -11,10 +10,10 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
-
 #include "./command.h"
-QT_BEGIN_NAMESPACE
+#include "./../../../include/utils.h"
 
+QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
@@ -39,7 +38,7 @@ public:
         QVBoxLayout* textGroupLayout = new QVBoxLayout(textGroup);
 
         // logView (80% height, 100% width)
-        QTextEdit* logView = new QTextEdit("Welcome to our Project: A Drive-Simulator");
+        logView = new QTextEdit("Welcome to our Project: A Drive-Simulator");
         logView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         const Qt::TextInteractionFlags textFlags = Qt::TextInteractionFlag::TextSelectableByMouse
                                      | Qt::TextInteractionFlag::LinksAccessibleByMouse
@@ -83,6 +82,7 @@ public:
         textGroup->setLayout(textGroupLayout);
 
         // scrollableCommandView (remaining space, commands as buttons)
+
         QWidget* scrollableCommandView = new QWidget;
         QVBoxLayout* scrollableCommandViewLayout = new QVBoxLayout(scrollableCommandView);
 
@@ -91,10 +91,8 @@ public:
         QWidget* buttonContainer = new QWidget;
         buttonLayout = new QVBoxLayout(buttonContainer);
 
-        // Placeholder button
-        //QPushButton* button = new QPushButton("Command Button");
-        //buttonLayout->addWidget(button);
-
+        //Init Log window
+        Output::os = new std::ostringstream();
         std::vector<Command> cs;
         cs.push_back(Command::EXIT);
         setHelpCommands(cs);
@@ -134,6 +132,7 @@ protected:
     bool handleCommand(str command);
 
 private:
+    QTextEdit* logView;
     QPushButton* commandButton;
     QVBoxLayout* buttonLayout;
     QLineEdit* commandInput;

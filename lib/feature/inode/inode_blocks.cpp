@@ -8,6 +8,7 @@ This Implements the setData(Array* data) methods for all (non-Abstract) Blocks
 */
 
 bool DataBlock::setData(Array *data) {
+  if (data == nullptr || this->data == nullptr) return false;
   const unsigned int dataLen = data->getLength();
   if (dataLen == 0) {
       std::memset(this->data, 0, BLOCK_SIZE);
@@ -28,12 +29,14 @@ bool DataBlock::setData(Array *data) {
 }
 
 Array DataBlock::getData() {
-  Array output = new Array(BLOCK_SIZE);
-  std::strncpy((char *)output.getArray(), (const char *)this->data, BLOCK_SIZE);
+  if (this->data == nullptr) return Array::EMPTY_ARRAY;
+  Array* output = new Array(BLOCK_SIZE);
+  std::strncpy((char *)output->getArray(), (const char *)this->data, BLOCK_SIZE);
   return output;
 }
 
 bool FirstIndirectBlock::setData(Array *data) {
+  if (data == nullptr) return false;
   unsigned int maxSize = data->getLength();
   if (maxSize > BLOCK_SIZE * BLOCK_SIZE) {
     std::cerr
@@ -96,6 +99,7 @@ Array FirstIndirectBlock::getData() {
 }
 
 bool FirstIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) {
+  if (block == nullptr) return false;
   (void) system;
   unsigned long curCap = this->getLength();
   if (curCap >= this->getCapacity()) {
@@ -142,6 +146,7 @@ unsigned long long FirstIndirectBlock::getLength() {
 }
 
 bool SecondIndirectBlock::setData(Array *data) {
+  if (data == nullptr) return false;
   unsigned int dataLen = data->getLength();
   if (dataLen > getCapacity()) {
     std::cerr << "Cannot save data in this SecondIndirectBlock: Capacity is "
@@ -194,6 +199,7 @@ Array SecondIndirectBlock::getData() {
 }
 
 bool SecondIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) {
+  if (block == nullptr) return false;
   unsigned long curCap = this->getLength();
   if (curCap >= this->getCapacity()) {
     return false;
@@ -257,6 +263,7 @@ unsigned long long SecondIndirectBlock::getLength() {
 }
 
 bool ThirdIndirectBlock::setData(Array *data) {
+  if (data == nullptr) return false;
   unsigned int maxSize = data->getLength();
   if (maxSize > this->getLength()) {
     std::cerr
@@ -309,6 +316,7 @@ Array ThirdIndirectBlock::getData() {
 }
 
 bool ThirdIndirectBlock::appendDataBlock(DataBlock* block, INodeSystem* system) {
+    if (block == nullptr) return false;
     unsigned long curCap = this->getLength();
       if (curCap >= this->getCapacity()) {
         return false;

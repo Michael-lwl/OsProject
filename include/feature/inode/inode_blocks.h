@@ -51,6 +51,8 @@ class Block {
         Block(size_t blockSize) : BLOCK_SIZE(blockSize) {
 
         }
+        
+        virtual ~Block() = default;
 
         virtual bool setData(Array* data) = 0;
         virtual Array getData() = 0;
@@ -63,7 +65,7 @@ class DataBlock : public Block {
             status = Status::FREE;
         }
 
-        ~DataBlock() = default;
+        virtual ~DataBlock() = default;
 
         ///Sets the data into this dataBlock.
         ///Returns false if the length of the data is longer than this Blocks' capacity'

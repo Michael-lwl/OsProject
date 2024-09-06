@@ -5,14 +5,16 @@
 #include <memory>
 #include <vector>
 
-char BsFat::getCharForObjective(BsCluster *cluster)
-{
-
+char BsFat::getCharForObjective(BsCluster *cluster) {
+    if (cluster == nullptr)
+        return StatusChar::DEF_CHAR;
     char output = getCharForStatus(cluster->status);
     if (output == StatusChar::USED_CHAR)
     {
         for (unsigned int i = 0; i < MAX_FILE_COUNT; i++)
         {
+            if (this->files[i] == nullptr || this->files[i].get() == nullptr)
+                continue;
             if (this->files[i]->getFileStart() == cluster)
                 output = i + '0';
         }
@@ -21,15 +23,15 @@ char BsFat::getCharForObjective(BsCluster *cluster)
 }
 
 void BsFat::show() {
-    *SysOut() << colorize("|", Color::WHITE);
+    std::cout << colorize("|", Color::WHITE);
     for (unsigned int i = 0; i < this->getBlockCount(); i++)
     {
         BsCluster* c = this->getCluster(i);
         std::string str{this->getCharForObjective(c)};
-        *SysOut() << colorize(str, getColorForStatus(c->status));
-        *SysOut() << '|';
+        std::cout << colorize(str, getColorForStatus(c->status));
+        std::cout << '|';
     }
-    *SysOut()<<std::endl;
+    std::cout<<std::endl;
 }
 
 
@@ -126,6 +128,9 @@ std::shared_ptr<File> BsFat::createFile(std::string* filePath, unsigned long fil
     }
 
     int index = getFirstFreeFileIndex();
+    if (index == -1) {
+        return nullptr;
+    }
     files[index] = make_shared<BsFile>(this, filePath, flags, fileSize);
     return files[index];
 }
@@ -160,9 +165,12 @@ BsCluster* BsFat::getNewCluster() {
 }
 
 unsigned int BsFat::getFirstFreeFileIndex() {
-    for (unsigned int i = 0; i < MAX_FILE_COUNT; i++)
-    {
-        if (files[i] == nullptr || files[i]->getFileStart() == nullptr)
+    for (unsigned int i = 0; i < MAX_FILE_COUNT; i++) {
+        if (files[i] == nullptr)
+            return i;
+        if (files[i]->getFlags() == 0)
+            return i;
+        if (files[i]->getFileStart() == nullptr)
             return i;
     }
     return -1;
@@ -201,10 +209,11 @@ bool BsFat::defragDisk() {
     vector<vector<vector<char>>> usedData;
 
     // Collect all used clusters
-    for (unsigned int i = 0; i < MAX_FILE_COUNT; i++)
-    {
+    for (unsigned int i = 0; i < MAX_FILE_COUNT; i++) {
+        if (this->files[i] == nullptr)
+            continue;
         BsFile* file = this->files[i].get();
-        if (file->getFileStart() == nullptr)
+        if (file == nullptr || file->getFileStart() == nullptr)
             continue;
         BsCluster* curCluster = file->getFileStart();
 
@@ -212,7 +221,8 @@ bool BsFat::defragDisk() {
         vector<vector<char>> curFileData;
         do {
             curFile.push_back(curCluster);
-            vector<char> curData(BLOCK_SIZE);
+            vector<char> curData;
+            curData.reserve(BLOCK_SIZE);
             unsigned char* dataBlock = getDataBlock(curCluster->blockIndex);
             if (dataBlock) {
                 memcpy(curData.data(), dataBlock, BLOCK_SIZE);

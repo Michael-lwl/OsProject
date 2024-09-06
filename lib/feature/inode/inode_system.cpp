@@ -211,8 +211,8 @@ bool INodeSystem::defragDisk() {
   const size_t DATA_BLOCK_BLOCK_SIZE = BLOCK_SIZE - sizeof(DataBlock);
 
   showDefragMsg(0);
-  vector<TempINode> usedFiles;
-  usedFiles.reserve(this->iNodeCount / 2);
+  vector<TempINode>* usedFiles = new vector<TempINode>();
+  usedFiles->reserve(this->iNodeCount / 2);
   // Collect all used files
   for (unsigned int i = 0; i < iNodeCount; i++) {
     INode file = this->iNodes[i];
@@ -220,7 +220,7 @@ bool INodeSystem::defragDisk() {
         continue;
       std::unique_ptr<Array> data = file.getData();
       TempINode tmp = {&file, std::move(data)};
-      usedFiles.push_back(tmp);
+      usedFiles->push_back(tmp);
   }
   showDefragMsg(25);
   // Clearing INodes
@@ -237,7 +237,7 @@ bool INodeSystem::defragDisk() {
   // Setting all data
   size_t curINode = 0;
   size_t curBlock = 0;
-  for (TempINode tmp : usedFiles) {
+  for (TempINode tmp : *usedFiles) {
     /// set all blocks
     size_t len = tmp.data->getLength();
     size_t fullBlocks = len / DATA_BLOCK_BLOCK_SIZE;

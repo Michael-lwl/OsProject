@@ -324,9 +324,9 @@ class INodeSystem : public System {
         iNodeSize(getBytesPerInode(driveSizeInBytes)),
         iNodeCount(iNodeCount),
         dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize) {
-          iNodes = getINode(0);
+          this->iNodes = getINode(0);
           for (size_t i = 0; i < iNodeCount; i++) {
-            new (iNodes + i) INode(nullptr, 0, 0, this);
+            new (this->iNodes + i) INode(nullptr, 0, 0, this);
           }
           for (size_t i = 0; i < dataBlockCount; i++) {
             new (getDataBlock(i)) DataBlock(BLOCK_SIZE - sizeof(DataBlock));

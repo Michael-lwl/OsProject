@@ -64,7 +64,12 @@ class BsFat : public System
 
         void show() override;
 
-        ~BsFat() = default;
+        ~BsFat() {
+            for (size_t i = 0; i < MAX_FILE_COUNT; i++) {
+                files[i].reset();
+            }
+            
+        }
 
         void delFile(long index);
         void setBlocks(std::shared_ptr<BsFile> newFile);
