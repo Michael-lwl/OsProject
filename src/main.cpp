@@ -3,9 +3,11 @@
 #include "./../include/core/data_sizes.h"
 #include "./../include/feature/fat/bs_system.h"
 #include "./../include/feature/inode/inode_system.h"
+#include "./../include/feature/ui/mainwindow.h"
 #include <cmath>
 #include <iostream>
 #include <ostream>
+#include <qt6/QtWidgets/qapplication.h>
 #include <string.h>
 #include <string>
 
@@ -182,10 +184,17 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
-  int output = 0;
-  BlockSizes blockSize = BlockSizes::B_512;
-  unsigned long long memorySize = 8 * getSizeInByte(ByteSizes::MiB); // 8 MebiByte
-  output |= test_BsFat(memorySize, blockSize);
-  output |= test_INodes(memorySize, blockSize);
-  return output;
+  // int output = 0;
+  // BlockSizes blockSize = BlockSizes::B_512;
+  // unsigned long long memorySize = 8 * getSizeInByte(ByteSizes::MiB); // 8 MebiByte
+  // output |= test_BsFat(memorySize, blockSize);
+  // output |= test_INodes(memorySize, blockSize);
+  // return output;
+  QApplication app(argc, argv);
+
+  MainWindow mainWindow;
+  mainWindow.setWindowTitle("OsProject");
+  mainWindow.showMaximized();
+
+  return app.exec();
 }

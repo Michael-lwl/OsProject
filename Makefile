@@ -1,52 +1,34 @@
-# Makefile for project
+# Makefile for CMake-based build system
 
 # Directories
-SRC_DIR := src
-LIB_DIR := lib
 BUILD_DIR := build
 BIN_DIR := bin
 
+# Project name
+PROJECT_NAME := OsProject
 
-# Filename
-EXEC_NAME := os.sh
+# Default target: Build and run the project
+.PHONY: all
+all: cmake-build
+	@$(MAKE) -C $(BUILD_DIR) # let make run in the build directory
 
+# Run the executable after the build
+	@echo "Running the executable..."
+	@./$(BIN_DIR)/$(PROJECT_NAME)
 
-# Compiler and flags
-CXX := g++
-CXXFLAGS := -Wall -Wextra
+# CMake configuration and build
+.PHONY: cmake-build
+cmake-build:
+	@mkdir -p $(BUILD_DIR)
+	@cd $(BUILD_DIR) && cmake ..
+	@$(MAKE) -C $(BUILD_DIR)
 
-# Source files
-SRC_CPP := $(wildcard $(SRC_DIR)/*.cpp)
-SRC_MAIN := $(SRC_DIR)/main.cpp
-SRC_LIB_CPP := $(shell find $(LIB_DIR) -name '*.cpp')
-OBJ := $(SRC_CPP:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o) $(SRC_LIB_CPP:$(LIB_DIR)/%.cpp=$(BUILD_DIR)/%.o)
-OBJ_MAIN := $(SRC_MAIN:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
-
-# Executable
-EXEC := $(BIN_DIR)/$(EXEC_NAME)
-
-.PHONY: all clean
-
-all: $(EXEC)
-
-$(EXEC): $(OBJ) $(OBJ_MAIN) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/%.o: $(LIB_DIR)/%.cpp | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(BUILD_DIR):
-	mkdir -p $@
-
-$(BIN_DIR):
-	mkdir -p $@
-
+# Clean build and binary directories
+.PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR) $(BIN_DIR)/*
-	make all
-	./$(BIN_DIR)/$(EXEC_NAME)
+	@echo "Cleaning up build and bin directories..."
+	@rm -rf $(BUILD_DIR) $(BIN_DIR)
+
+# Rebuild everything from scratch
+.PHONY: rebuild
+rebuild: clean all
