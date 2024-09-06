@@ -1,4 +1,4 @@
-#include "../include/utils.h"
+#include "./../include/utils.h"
 #include "./../include/core/data_impl.h"
 #include "./../include/core/data_sizes.h"
 #include "./../include/feature/fat/bs_system.h"
@@ -179,25 +179,9 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
   return 0;
 }
 
-const size_t STD_BLOCK_SIZE = 4 * getSizeInByte(ByteSizes::KB);
-
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
-  std::cerr << STD_BLOCK_SIZE << std::endl;
-  /*unsigned char* FestePlatte;
-  if (hasFile) {
-      FestePlatte = readFile(filename);
-  } else {
-      FestePlatte = static_cast<unsigned char*>(malloc(sizeof(char) *
-  ByteSizes::GB));
-  }
-  MBR* mbr = new (FestePlatte) MBR();
-  Data* dh1 = new Data_Impl(120);
-  Data* dh2 = new Data_Impl(120);
-  const unsigned char* usableDrive = FestePlatte + sizeof(MBR) + 1;
-  INodeSystem* inode1 = new (usableDrive) INodeSystem()
-  mbr.addSystem(festePlatte[0]);*/
   int output = 0;
   BlockSizes blockSize = BlockSizes::B_512;
   unsigned long long memorySize = 8 * getSizeInByte(ByteSizes::MiB); // 8 MebiByte
