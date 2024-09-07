@@ -46,6 +46,53 @@ struct Partition {
 
 class MBR{
 public:
+  CHS *firstSektor;
+  CHS *lastSektor;
+  CHS *startPtr;
+  unsigned int length;
+  char type;
+};
+
+enum SpeicherSystem {
+    BS_FAT,
+    INODE
+};
+
+const size_t MAX_PARTITION_COUNT = 4;
+
+class MBR {
+public:
+  MBR(unsigned long long driveSize) {
+
+    // Todo Inputs für memorySize und BlockSize für die händische Abfrage
+    // einfügen
+  }
+  BsFat *bootBSFat(unsigned int blockSize, unsigned int memorySize, Data *dataHandler) {
+    void *memory = ::operator new(memorySize); // Raw allocation
+    BsFat *B = BsFat::create(memory, memorySize, blockSize, dataHandler);
+    return B;
+  }
+
+   INodeSystem* bootINode(int blockSize, int memorySize, Data *dataHandler){
+    void *memory = ::operator new(memorySize); // Raw allocation
+    INodeSystem* I = INodeSystem::create(memory, memorySize,blockSize, dataHandler);
+    return I;
+   }
+
+   Partition* createPartition(unsigned long long memorySize, BlockSizes blockSize = BlockSizes::KIB_4,SpeicherSystem ss = SpeicherSystem::BS_FAT) {return nullptr;}
+
+  // Getter
+  unsigned int getSectorsCount() { return sectorsCount; }
+  unsigned int getDiskSignature() { return diskSignature; }
+  Partition* getPartitions() {return partitions;}
+  // Setter
+
+  void setSectorcount(unsigned int sectorsCount) {
+    this->sectorsCount = sectorsCount;
+  }
+  void setDiskSignature(unsigned int diskSignature) {
+    this->diskSignature = diskSignature;
+  }
 
 MBR(long MaxSpeicherplatz){
 this->MaxSpeicherplatz = MaxSpeicherplatz;
@@ -231,11 +278,11 @@ Partition getSingularPartition(int i = 0) {
         return I;
     }
 private:
-    Partition Partitions[4] = { 0 };
-    const int identificationCode = 0xAA55;
-    unsigned long MaxSpeicherplatz;
-    unsigned int ParitionEntries = 0;
-
+  const int identificationCode = 0xAA55;
+  unsigned long MaxSpeicherplatz;
+  unsigned int sectorsCount;
+  unsigned int diskSignature; // normalerweise nur in Windows
+  Partition partitions[MAX_PARTITION_COUNT];
 };
 
 
