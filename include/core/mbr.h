@@ -83,7 +83,8 @@ public:
     if (partitions[0].firstSektor != NULL && partitions[0].lastSektor != NULL) {
       unsigned long long LBA = checkLBA();
       if (MaxSpeicherplatz < Speicherplatz + LBA) {
-        throw std::out_of_range("Der gewünschte Speicherplatz übersteigt den Restspeicher des MBRs. Partition konnte nicht angelegt werden");
+        std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
+        //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
       }
     }
     Partition Eintrag = {};
@@ -96,7 +97,7 @@ public:
     Eintrag.system = createSystem(System, Speicherplatz, datahandler, BlockSize);
     Eintrag.isBootable = checkbootable(Eintrag);
     Eintrag.sectorsCount = Speicherplatz / BlockSize;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < MAX_PARTITION_COUNT; i++) {
       if (partitions[i].firstSektor == NULL &&
           partitions[i].lastSektor == NULL) {
         partitions[i] = Eintrag;
@@ -123,8 +124,9 @@ public:
     }
   }
   unsigned long long checkLBA() { // berechnet wie viel Byte bisher belegt sind. Die Berechnung ist inspiriert durch die LBA Methode
-    for (int i = 0; i < 5; i++) {
-      if (i == 4 || partitions[i].lastSektor == NULL) { // Loope bis kein Eintrag mehr gefunden wird um den letzten Eintrag zu ermitteln
+    if (getPartitionCount() == 0) return 0;
+    for (int i = 0; i < 5 + 1; i++) {
+      if (i == MAX_PARTITION_COUNT || partitions[i].lastSektor == NULL) { // Loope bis kein Eintrag mehr gefunden wird um den letzten Eintrag zu ermitteln
         long c = partitions[i - 1].lastSektor->c;
         long h = partitions[i - 1].lastSektor->h;
         long s = partitions[i - 1].lastSektor->s;
@@ -141,7 +143,7 @@ public:
     unsigned long maxSpeicher =
         maxCylinders * maxHeads * maxSectors; // Todo Restspeicher abziehen
     if (Speicherplatz >= maxSpeicher) {
-      throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
+      throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes"); //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
     }
 
     // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können
@@ -188,8 +190,14 @@ public:
     std::cout << "Die Partition ist " << Ergebnis << " Byte groß" << std::endl;
     return Ergebnis;
   }
-
-  void deletePartition(int i) { // Hilfsmethode um Partition zu löschen
+void deletePartition(unsigned int i) {
+    if(i >= MAX_PARTITION_COUNT) std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
+    else {
+      partitions[i] = {0};
+      std::cout << "Die Partition an der" << i << "Stelle wurde gelöscht" << std::endl;
+    }
+  }
+ /* void deletePartition(int i) { // Hilfsmethode um Partition zu löschen
     unsigned long long reserved[4] = {0};
     if (partitions[i].firstSektor == nullptr || partitions[i].lastSektor == nullptr || (i > 3 || i < 0)) {
       throw std::out_of_range("Es gibt diesen Eintrag nicht");
@@ -207,10 +215,12 @@ public:
           }
         }
       }
-      partitions[0] = {0};
-      partitions[1] = {0};
-      partitions[2] = {0};
-      partitions[3] = {0};
+      for(int index = 0; index < MAX_PARTITION_COUNT; index++) {
+        partitions[index] = {0};
+      }
+
+
+
       for (int k = 0; k < 4; k++) {
         if (reserved[k] != 0) {
             if (p[k].system != nullptr)
@@ -222,7 +232,7 @@ public:
         }
       }
     }
-  }
+  }  */
 
   unsigned long long getMaxSpeicherplatz() {
     return this->MaxSpeicherplatz;
@@ -256,13 +266,16 @@ public:
         INodeSystem::create(memory, memorySize, blockSize, dataHandler);
     return I;
   }
+  void setSystem(int index,System* s) {
+    partitions[index].system = s;
+  }
 
 private:
   const int identificationCode = 0xAA55;
-  unsigned long long MaxSpeicherplatz;
-  unsigned int sectorsCount;
-  unsigned int diskSignature; // normalerweise nur in Windows
-  Partition partitions[MAX_PARTITION_COUNT];
+  unsigned long long MaxSpeicherplatz = 0;
+  unsigned int sectorsCount = 0;
+  unsigned int diskSignature = 0; // normalerweise nur in Windows
+  Partition partitions[MAX_PARTITION_COUNT] = {0};
 };
 
 #endif // MBR_H
