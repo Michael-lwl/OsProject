@@ -29,14 +29,14 @@ bool BsFile::setData(Array* data) {
 
 
     if (this->getFileSizeInBytes() < neededSpace) {
-        cout<<"WARNING: Trying to save "<<data->getLength()
+        *SysOut()<<"WARNING: Trying to save "<<data->getLength()
             <<" Bytes into allocated space of "<<this->getFileSizeInBytes()<<"Bytes. Resizing the file"<<endl;
 
         if (!expandToSize(neededSpace)){
             cerr<<"Error: Cannot expand file \""<<this->getFilePath()<<"\" to size "<<data->getLength()<<endl;
             return false;
         }
-        cout<<"File expanded accordingly!"<<endl;
+        *SysOut()<<"File expanded accordingly!"<<endl;
     }
 
     BsCluster* curCluster = fileStart;
