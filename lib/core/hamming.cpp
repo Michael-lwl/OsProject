@@ -116,7 +116,7 @@ class Hamming : public Data {
                 return 0; // No error
             if (errorPos != 0 && errorPos <= data->getLength())
             {
-                *SysOut() << "Error at position: " << errorPos << std::endl;
+                std::cout << "Error at position: " << errorPos << std::endl;
                 if (TstBit((const char*) data->getArray(), errorPos - 1))
                     ClrBit(data->getArray(), errorPos - 1);
                 else

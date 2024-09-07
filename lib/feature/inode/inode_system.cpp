@@ -12,7 +12,7 @@ bool INodeSystem::deleteFile(std::string *filePath) {
     std::cerr << "File \"" << filePath << "\" does not exist!" << std::endl;
     return false;
   }
-  *SysOut() << "Deleting File \"" << *filePath << "\"." << std::endl;
+  std::cout << "Deleting File \"" << *filePath << "\"." << std::endl;
   file->resizeFile(0);
   file->setFlags(0);
   file->rename(nullptr);
@@ -384,12 +384,12 @@ char INodeSystem::getCharForObjective(DataBlock *db) {
 }
 
 void INodeSystem::show() {
-  *SysOut() << colorize("|", Color::WHITE);
+  std::cout << colorize("|", Color::WHITE);
   for (unsigned int i = 0; i < this->dataBlockCount; i++) {
     DataBlock *c = this->getDataBlock(i);
     std::string str{this->getCharForObjective(c)};
-    *SysOut() << colorize(str, getColorForStatus(c->status));
-    *SysOut() << '|';
+    std::cout << colorize(str, getColorForStatus(c->status));
+    std::cout << '|';
   }
-  *SysOut() << std::endl;
+  std::cout << std::endl;
 }

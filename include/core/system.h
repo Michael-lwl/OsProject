@@ -65,7 +65,7 @@ class System {
             return iterations * totalLength;
         };
 
-        /// Shows this Systems Datablocks in *SysOut()
+        /// Shows this Systems Datablocks in std::cout
         virtual void show() = 0;
 
         //Getter and setter

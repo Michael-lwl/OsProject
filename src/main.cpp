@@ -11,14 +11,14 @@
 #include <string.h>
 #include <string>
 
-#define TODO *SysOut() << "TODO: implement the rest" << std::endl;
+#define TODO std::cout << "TODO: implement the rest" << std::endl;
 void simpleAndClean(void *ptr) {
   if (ptr != nullptr)
     free(ptr);
 }
 
 int colouredOutputTest() {
-  *SysOut() << colorize("T", Color::BLUE) << "es" << colorize("t", Color::RED)
+  std::cout << colorize("T", Color::BLUE) << "es" << colorize("t", Color::RED)
             << std::endl;
   return 0;
 }
@@ -44,16 +44,16 @@ int test_BsFat(unsigned long long memorySize, BlockSizes blockSize = BlockSizes:
   std::string filename2 = "file2.txt";
   unsigned long long file2Size = 50 * blockSize;
 
-  *SysOut() << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
+  std::cout << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
        << "\nBlockSize: " << blockSize << "\nBlockCount: " << pFat->getBlockCount() <<endl;
 
-  *SysOut() << "Creating File 1" << endl;
+  std::cout << "Creating File 1" << endl;
   shared_ptr<File> file1 =
       pFat->createFile(&filename1, file1Size, Flags::SYSTEM | Flags::IS_TEMP);
   if (file1 == nullptr) {
     cerr << "Failed to create file1.tmp." << endl;
   }
-  *SysOut() << "Created File 1" << endl;
+  std::cout << "Created File 1" << endl;
   pFat->show();
 
   shared_ptr<File> file2 =
@@ -62,7 +62,7 @@ int test_BsFat(unsigned long long memorySize, BlockSizes blockSize = BlockSizes:
     cerr << "Failed to create file2.txt." << endl;
   }
   pFat->show();
-  *SysOut() << "--------------------------------------------------------------------"
+  std::cout << "--------------------------------------------------------------------"
           "--------------------------------------------------------------------"
        << endl;
 
@@ -79,7 +79,7 @@ int test_BsFat(unsigned long long memorySize, BlockSizes blockSize = BlockSizes:
   pFat->show();
   if (file1 != nullptr) {
     // Delete the first file
-    *SysOut() << "Deleting file1" << endl;
+    std::cout << "Deleting file1" << endl;
     file1.reset();
     pFat->deleteFile(&filename1);
     pFat->show();
@@ -87,16 +87,16 @@ int test_BsFat(unsigned long long memorySize, BlockSizes blockSize = BlockSizes:
 
   // Check fragmentation before defragmentation
   float fragmentationBefore = pFat->getFragmentation();
-  *SysOut() << "Fragmentation before defrag BsFat: " << fragmentationBefore << endl;
+  std::cout << "Fragmentation before defrag BsFat: " << fragmentationBefore << endl;
 
   // Defragment the disk
-  *SysOut() << "Defragmenting disk" << endl;
+  std::cout << "Defragmenting disk" << endl;
   pFat->defragDisk();
   pFat->show();
 
   // Check fragmentation after defragmentation
   float fragmentationAfter = pFat->getFragmentation();
-  *SysOut() << "Fragmentation after defrag BsFat: " << fragmentationAfter << endl;
+  std::cout << "Fragmentation after defrag BsFat: " << fragmentationAfter << endl;
 
   file2.reset();
   delete pFat;
@@ -123,27 +123,27 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
   std::string filename2 = "file2.txt";
   unsigned long long file2Size = 50 * blockSize;
 
-  *SysOut() << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
+  std::cout << "Filesize1: " << file1Size << "\nFilesize2: " << file2Size
        << "\nBlockSize: " << blockSize << "\nBlockCount: " << iNodeSystem->getBlockCount() <<endl;
 
-  *SysOut() << "Creating File 1" << endl;
+  std::cout << "Creating File 1" << endl;
   shared_ptr<File> file1 =
       iNodeSystem->createFile(&filename1, file1Size, Flags::SYSTEM | Flags::IS_TEMP);
   if (file1 == nullptr) {
     cerr << "Failed to create file1.tmp." << endl;
   }
-  *SysOut() << "Created File 1" << endl;
+  std::cout << "Created File 1" << endl;
   iNodeSystem->show();
 
-  *SysOut() << "Creating File 2" << endl;
+  std::cout << "Creating File 2" << endl;
   shared_ptr<File> file2 =
       iNodeSystem->createFile(&filename2, file2Size, Flags::ASCII);
   if (file2 == nullptr) {
     cerr << "Failed to create file2.txt." << endl;
   }
-  *SysOut() << "Created File 2" << endl;
+  std::cout << "Created File 2" << endl;
   iNodeSystem->show();
-  *SysOut() << "--------------------------------------------------------------------"
+  std::cout << "--------------------------------------------------------------------"
           "--------------------------------------------------------------------"
        << endl;
 
@@ -160,7 +160,7 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
   iNodeSystem->show();
   if (file1 != nullptr) {
     // Delete the first file
-    *SysOut() << "Deleting file1" << endl;
+    std::cout << "Deleting file1" << endl;
     file1.reset();
     iNodeSystem->deleteFile(&filename1);
     iNodeSystem->show();
@@ -168,16 +168,16 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
 
   // Check fragmentation before defragmentation
   float fragmentationBefore = iNodeSystem->getFragmentation();
-  *SysOut() << "Fragmentation before defrag INodeSystem: " << fragmentationBefore << endl;
+  std::cout << "Fragmentation before defrag INodeSystem: " << fragmentationBefore << endl;
 
   // Defragment the disk
-  *SysOut() << "Defragmenting disk" << endl;
+  std::cout << "Defragmenting disk" << endl;
   iNodeSystem->defragDisk();
   iNodeSystem->show();
 
   // Check fragmentation after defragmentation
   float fragmentationAfter = iNodeSystem->getFragmentation();
-  *SysOut() << "Fragmentation after defrag INodeSystem: " << fragmentationAfter << endl;
+  std::cout << "Fragmentation after defrag INodeSystem: " << fragmentationAfter << endl;
 
   file2.reset();
   delete iNodeSystem;
