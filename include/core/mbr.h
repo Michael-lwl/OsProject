@@ -50,7 +50,7 @@ public:
 MBR(long MaxSpeicherplatz){
 this->MaxSpeicherplatz = MaxSpeicherplatz;
 }
-Partition createPartition(unsigned long long Speicherplatz ,SpeicherSystem System = BS_FAT, unsigned int BlockSize = 512){
+Partition createPartition(unsigned long long Speicherplatz ,SpeicherSystem System = BS_FAT, unsigned int BlockSize = 512){ //erstellt Partitio
 //Todo check Rest Speicherplatz
 if(Partitions[0].firstSektor != NULL && Partitions[0].lastSektor != NULL) {
     unsigned long long LBA = checkLBA();
@@ -61,8 +61,8 @@ if(Partitions[0].firstSektor != NULL && Partitions[0].lastSektor != NULL) {
 Partition Eintrag = {};
 //Data *dataHandler = new Data_Impl(this->BlockSize);
 Eintrag.type = System;
-Eintrag.startPtr = createstartSector();//Todo start ptr zeigen
-Eintrag.firstSektor = createSector( getStart()); //Todo First Sektor ermitteln
+Eintrag.startPtr = createstartSector();
+Eintrag.firstSektor = createSector( getStart());
 Eintrag.lastSektor = createSector( getStart() + Speicherplatz );
 //Eintrag.system = createSystem(System,Speicherplatz,dataHandler);
     Eintrag.isBootable = checkbootable(Eintrag);
@@ -76,20 +76,15 @@ Eintrag.lastSektor = createSector( getStart() + Speicherplatz );
 
     return Eintrag;
 }
-unsigned char checkbootable(Partition E){
-//Todo check if bootable
-    if(E.firstSektor != NULL && E.lastSektor != NULL) {
+unsigned char checkbootable(Partition E){ //überprüft ob eine Partition bootbar ist. Wird gesetzt wenn System gesetzt ist und First und Lastsektor gesetzt sind
+
+    if(E.firstSektor != NULL && E.lastSektor != NULL && E.system != NULL) {
         return 0x80;
     }else{return 0;}
 }
-//System*  createSystem(SpeicherSystem System, unsigned int Speicher,Data* datahandler){
-//    void* memory = ::operator new(Speicher);
-//(System == BS_FAT){return bootBSFat(memory ,this->BlockSize,Speicher,datahandler);}
-//else if(System = INODE){return bootINode(memory,this->BlockSize,Speicher,datahandler);}
-//else{throw("Das System konnte nicht erstellt werden");}
-//
 
-unsigned long long getStart() {
+
+unsigned long long getStart() { //setzt den StartPtr
     if(Partitions[0].startPtr == NULL) {
         return 0;
     }
@@ -97,9 +92,9 @@ unsigned long long getStart() {
         return checkLBA();
     }
 }
-unsigned long long checkLBA(){
+unsigned long long checkLBA(){ //berechnet wie viel Byte bisher belegt sind. Die Berechnung ist inspiriert durch die LBA Methode
     for(int i = 0; i < 5; i++) {
-        if(   i == 4 || Partitions[i].lastSektor == NULL ) {
+        if(   i == 4 || Partitions[i].lastSektor == NULL ) { //Loope bis kein Eintrag mehr gefunden wird um den letzten Eintrag zu ermitteln
             long c = Partitions[i - 1].lastSektor->c;
             long h = Partitions[i - 1].lastSektor->h;
             long s = Partitions[i - 1].lastSektor->s ;
@@ -110,7 +105,7 @@ unsigned long long checkLBA(){
 }
 
 
-    CHS* createSector(unsigned long long speicherplatzInBytes, unsigned int BlockSize = 512) {
+    CHS* createSector(unsigned long long speicherplatzInBytes, unsigned int BlockSize = 512) { //Erstelle eineN CHS Sektor
     CHS* sector = new CHS ;
     unsigned int Speicherplatz = speicherplatzInBytes / BlockSize;
     unsigned long maxSpeicher =  maxCylinders * maxHeads * maxSectors; //Todo Restspeicher abziehen
@@ -120,8 +115,8 @@ unsigned long long checkLBA(){
 
 
 
-    // Direkte Berechnung der CHS-Werte
-    sector->s = ( Speicherplatz % maxSectors) + 1; // Sektoren starten bei 1
+    // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können
+    sector->s = ( Speicherplatz % maxSectors) + 1; // Sektoren starten bei 1,
         Speicherplatz /= maxSectors;
     sector->h =  Speicherplatz % maxHeads;
      Speicherplatz /= maxHeads;
@@ -130,7 +125,7 @@ unsigned long long checkLBA(){
     return sector;
 
 }
-CHS* createstartSector() { //TODO ist richtig?
+CHS* createstartSector() { //Hilfsmethode um den Start Sektor zu ermitteln. Erstellt einen Sektor bei 0 0 1 wenn keine Einträge in partitions. Anosnsten wird ein Sektor direkt nach dem letzten LastSektor erstellt
         if(Partitions[0].lastSektor == NULL && Partitions[0].firstSektor == NULL) {
            return  createSector(0);
         }
@@ -142,16 +137,16 @@ CHS* createstartSector() { //TODO ist richtig?
 
 bool boot(int bIndex = 0){
 if(Partitions[bIndex].isBootable != 0){
-//return Partitions[bIndex].isBootable != 1 && Partitions[bIndex].system->boot();
-    return 0;
+return Partitions[bIndex].isBootable != 1 && Partitions[bIndex].system->boot();
+
 }
 return 1;}
-unsigned long long checkSizeReserviert() {
+unsigned long long checkSizeReserviert() { //Hilfsmethode um komplett genutzen Speicher zu nutzen
         unsigned long long MemoryAllocated = checkLBA();
     std::cout << "Es  ist vereits " << MemoryAllocated  << " Byte reserviert" << std::endl;
         return MemoryAllocated;;
     }
-    unsigned long long checkPartitionsize(Partition p) {
+    unsigned long long checkPartitionsize(Partition p) { //Berechnet die Size einer ganzer Partition indem first vom last Setkor abgezogen wird
  unsigned long long c1 = p.firstSektor->c;
  unsigned long long h1 = p.firstSektor->h;
  unsigned long long s1 = p.firstSektor->s ;
@@ -166,23 +161,25 @@ unsigned long long checkSizeReserviert() {
         return Ergebnis;
     }
 
-    void deletePartition(int i) {
+    void deletePartition(int i) { //Hilfsmethode um Partition zu löschen
     unsigned long long reserved[4] = {0};
     if(Partitions[i].firstSektor != NULL && Partitions[i].lastSektor != NULL && i < 4 && i > 0) {
         throw std::out_of_range("Es gibt diesen Eintrag nicht");
     }
     else {
-        Partition p[] = {0};
+        Partition p[4] = {0};
 
         for (int j = 0; j < 4 - 1; j++) {
 
-            if(i != j) {
+            if(i != j) { // wenn j != i ist das ein Eintrag der nicht gelöscht oder verschoben werden muss
                 reserved[j] = checkPartitionsize(getSingularPartition(j ));
+                p->type = Partitions[j].type;
 
             }
-            else if (i == j && i < 5) {
+            else if (i == j && i < 5) { //überspringt den Eintrag der gelöscht werden soll und speichert die Größe der Einträge die nicht gelöscht werden müssen
                 if(Partitions[j + 1].firstSektor != NULL) {
                     reserved[j] = checkPartitionsize(getSingularPartition(j + 1));
+                    p[j].type = Partitions[j + 1].type;
                     i++;
                 }
             }
@@ -194,13 +191,18 @@ unsigned long long checkSizeReserviert() {
         Partitions[2] = {0};
         Partitions[3] = {0};
         for(int k = 0; k < 4; k++) {
+            if(reserved[k] != 0) {
+                Partitions[k] = createPartition( reserved[k], p[k].type);
 
-            Partitions[k] = createPartition( reserved[k]);
-
+            }
+            else if(reserved[k] == 0) {
+                Partitions[k] = {0};
+            }
         }
 
     }
 }
+
 
 
 unsigned long long getMaxSpeicherplatz(){return this->MaxSpeicherplatz;}
@@ -211,6 +213,7 @@ Partition getSingularPartition(int i = 0) {
         }
         return Partitions[i];
     }
+    //Erstellt ein System und gibt das zurück
     System*  createSystem(SpeicherSystem System, unsigned int Speicher,Data* datahandler,unsigned int BlockSize = 512){
         void* memory = ::operator new(Speicher);
         if(System == BS_FAT){return bootBSFat(memory ,BlockSize,Speicher,datahandler);}
