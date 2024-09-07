@@ -10,6 +10,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include "./../utils.h"
 
 #ifndef STREAM_BUF_H
 #define STREAM_BUF_H
@@ -42,7 +43,7 @@ protected:
             // Write buffer content to ostringstream
             oss.write(pbase(), n);
             // Update the QTextEdit with the current content of the ostringstream
-            textEdit->setPlainText(QString::fromStdString(oss.str()));
+            textEdit->setHtml(QString::fromStdString(convertToHtmlWithColors(oss.str())));
             //textEdit->verticalScrollBar()->setValue(textEdit->verticalScrollBar()->maximum());
 
             // Reset the buffer

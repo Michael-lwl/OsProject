@@ -54,6 +54,17 @@ public:
     // einfügen
     this->MaxSpeicherplatz = driveSize;
     this->sectorsCount = 0;
+    for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
+        partitions[i] = {
+            0,
+            SpeicherSystem::BS_FAT,
+            0,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        };
+    }
   }
 
   // Getter

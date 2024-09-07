@@ -218,12 +218,12 @@ int main(int argc, char **argv) {
   // output |= test_BsFat(memorySize, blockSize);
   // output |= test_INodes(memorySize, blockSize);
   // return output;
-  // QApplication app(argc, argv);
+  QApplication app(argc, argv);
 
-  // MainWindow mainWindow;
-  // mainWindow.setWindowTitle("OsProject");
-  // mainWindow.showMaximized();
+  MainWindow mainWindow;
+  mainWindow.setWindowTitle("OsProject");
+  mainWindow.showMaximized();
 
-  // return app.exec();
-  return test_mbr();
+  return app.exec();
+  // return test_mbr();
 }

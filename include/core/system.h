@@ -49,6 +49,8 @@ class System {
         ///Returns a the file associated with the specified path.
         ///Might return null!
         virtual std::shared_ptr<File> getFile(std::string* filePath) = 0;
+        ///Returns a vector of all files
+        virtual std::vector<std::shared_ptr<File>> getAllFiles() = 0;
         ///Returns the disks fragmentation.
         ///Please return 0, if defragmentation is not necessary in the filesystem.
         virtual float getFragmentation() = 0;

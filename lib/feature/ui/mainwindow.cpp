@@ -1,11 +1,15 @@
 #include "./../../../include/feature/ui/mainwindow.h"
 #include "./../../../include/utils.h"
+#include <exception>
+#include <fstream>
 #include <iostream>
+#include <memory>
 #include <qt/QtWidgets/qlayout.h>
 #include <qt/QtWidgets/qlayoutitem.h>
 #include <qt/QtWidgets/qpushbutton.h>
 #include <qt/QtWidgets/qwidget.h>
 #include <cmath>
+#include <filesystem>
 ///Clears the layout recursively
 void clearLayout(QLayout* layout, bool deleteWidgets = true)
 {
@@ -60,7 +64,7 @@ bool MainWindow::handleCommand(str command) {
         }
 
     }
-    std::cout<< "No valid command!" << std::endl;
+    std::cout<< colorize("Invalid command!", Color::RED) << std::endl;
 
     return false;
 }
@@ -77,7 +81,7 @@ std::string mapMbrToString(MBR* mbr, size_t curPartIndex) {
     vector<PartitionSize> partSizes;
     partSizes.reserve(mbr->getPartitionCount());
     for (size_t i = 0; i < MBR::MAX_PARTITION_COUNT; i++) {
-        if (mbr->getPartitions()[i].firstSektor == nullptr) {
+        if (mbr->getPartitions()[i].firstSektor == nullptr || mbr->getPartitions()[i].system == nullptr) {
             continue;
         }
         const size_t ds = mbr->getPartitions()[i].system->DRIVE_SIZE;
@@ -87,8 +91,11 @@ std::string mapMbrToString(MBR* mbr, size_t curPartIndex) {
     }
     output.reserve(7 * (MBR::MAX_PARTITION_COUNT * 5)); //Reserve the space for the string
     float tolerance = 0.1f;
-    for (size_t lineHeight = 0; lineHeight < 7; lineHeight++) {
-        size_t percentageFull = (7.0f-lineHeight) / 7.0f;
+    vector<size_t> wasPaintedVec;
+    wasPaintedVec.reserve(partSizes.size());
+    const size_t MAX_LINE_HEIGHT = 7;
+    for (size_t lineHeight = 0; lineHeight < MAX_LINE_HEIGHT; lineHeight++) {
+        size_t percentageFull = (MAX_LINE_HEIGHT - lineHeight) / 7.0f;
         size_t curIndex = 0;
         for (PartitionSize ps : partSizes) {
             if (curIndex == curPartIndex) {
@@ -97,8 +104,16 @@ std::string mapMbrToString(MBR* mbr, size_t curPartIndex) {
                 output.append(BORDER);
             }
 
-            if (std::abs(ps.usedPercentage - percentageFull) <= tolerance) {
+            bool wasPainted = false;
+            for (size_t i : wasPaintedVec) {
+                if (i == curIndex) {
+                    wasPainted = true;
+                    break;
+                }
+            }
+            if (std::abs(ps.usedPercentage - percentageFull) <= tolerance && !wasPainted) {
                 output.append(colorize("----------", Color::CYAN));
+                wasPaintedVec.push_back(curIndex);
             } else {
                 output.append("          ");
             }
@@ -110,6 +125,7 @@ std::string mapMbrToString(MBR* mbr, size_t curPartIndex) {
             }
             curIndex++;
         }
+        output.append("\n");
     }
     return output;
 }
@@ -124,14 +140,25 @@ void MainWindow::loadDrive() {
     string output = "Drive No: ";
     output.append(to_string(mbrIndex));
     output.append("\n");
-    if (this->drives.at(mbrIndex)->getPartitionCount() != 0)
+    if (this->drives.at(mbrIndex)->getPartitionCount() > 0)
         output.append(mapMbrToString(this->drives.at(mbrIndex), partIndex));
-    this->renderedView->setText(QString::fromStdString(output));
+    this->renderedView->setHtml(QString::fromStdString(convertToHtmlWithColors(output)));
 }
 
-bool MainWindow::createDisk(unsigned long long size, ByteSizes byteSize) {}
-bool MainWindow::deleteDisk(size_t index) {
+bool MainWindow::createDisk(size_t size, ByteSizes byteSize) {
+  unsigned long long driveSize = size * getSizeInByte(byteSize);
+  MBR* mbr = new MBR(driveSize);
+  this->drives.push_back(mbr);
+  return true;
+}
 
+bool MainWindow::deleteDisk(size_t index) {
+  if (index > drives.size()) {
+    std::cout << colorize("Error: Cannot delete Drive: Invalid drive index!", Color::RED) << std::endl;
+    return false;
+  }
+  drives.erase(drives.begin() + index);
+  return true;
 }
 bool MainWindow::changeDisk() {
     const size_t driveCount = this->drives.size();
@@ -145,10 +172,51 @@ bool MainWindow::changeDisk() {
     loadDrive();
     return true;
 }
-bool MainWindow::wipeDisk(size_t index) {}
-bool MainWindow::createPart(unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize) {}
-bool MainWindow::deletePart(size_t index) {}
+
+bool MainWindow::wipeDisk(size_t index) {
+  if (index > this->drives.size()) {
+    std::cout << colorize("Error: Cannot wipe Disk: Invalid drive index!", Color::RED) << std::endl;
+    return false;
+  }
+  MBR* mbr = this->drives.at(index);
+  for (size_t i = 0; i < MBR::MAX_PARTITION_COUNT; i++) {
+    if (mbr->getPartitions()[i].firstSektor != nullptr) {
+      mbr->deletePartition(i);
+    }
+  }
+  return true;
+}
+bool MainWindow::createPart(size_t size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize) {
+  if (mbrIndex >= this->drives.size()) {
+    std::cout << colorize("Error: Internal Error, please try again!", Color::RED) << std::endl;
+    mbrIndex = 0;
+    return false;
+  }
+  MBR* mbr = this->drives.data()[mbrIndex];
+  if (mbr->getPartitionCount() >= MBR::MAX_PARTITION_COUNT) {
+    std::cout << colorize("Error: Cannot create Disk: Disk is full!", Color::RED) << std::endl;
+    return false;
+  }
+  Partition* p = mbr->createPartition(size * getSizeInByte(byteSize), system, blockSize);
+  return p != nullptr;
+}
+
+bool MainWindow::deletePart(size_t index) {
+  if (index > this->drives.size()){
+    return false;
+  }
+  MBR* mbr = this->drives.at(mbrIndex);
+  if (mbr->getPartitionCount() < index)
+    return false;
+  mbr->deletePartition(index);
+  return true;
+}
+
 bool MainWindow::changePart() {
+    if (this->drives.size() <= mbrIndex) {
+        std::cout << colorize("Error: You have no drive to show any partitions.", Color::RED) << std::endl;
+        return false;
+    }
     const size_t partCount = this->drives.at(mbrIndex)->getPartitionCount();
     if (partCount == 0) {
         std::cout << colorize("Error: You have no partitions, create one with createPart.", Color::RED) << std::endl;
@@ -159,9 +227,239 @@ bool MainWindow::changePart() {
     loadDrive();
     return true;
 }
-bool MainWindow::formatPart(size_t index, unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize ) {}
-bool MainWindow::createFile(std::string* name, unsigned long long fileSize, unsigned char flags) {}
-bool MainWindow::listFiles() {}
-bool MainWindow::deleteFile(std::string* name) {}
-bool MainWindow::insertFile(std::string* name, std::string pathToCopyFrom) {}
-bool MainWindow::readFile(std::string* name, std::ostream& outputStream) {}
+
+bool MainWindow::formatPart(size_t index, unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize) {
+  if (index > this->drives.size()) {
+    std::cout << colorize("Error: Cannot format Partition: Index is invalid!", Color::RED) << std::endl;
+    return false;
+  }
+  if (!deletePart(index)) {
+    std::cout << colorize("Error: Could not format Partition: Error in delete partition!", Color::MAGENTA) << std::endl;
+    return false;
+  }
+  if (!createPart(size, byteSize, system, blockSize)) {
+    std::cout << colorize("Error could not format Partition: Error in creating partition!", Color::MAGENTA) << std::endl;
+    return false;
+  }
+  return true;
+}
+
+bool MainWindow::createFile(std::string* name, unsigned long long fileSize, unsigned char flags) {
+  if (mbrIndex >= this->drives.size()) {
+    std::cout << colorize("Internal error, no files read! Please try again!", Color::RED) << std::endl;
+    this->mbrIndex = 0;
+    return false;
+  }
+  MBR* mbr = this->drives.at(mbrIndex);
+  if (partIndex > mbr->getPartitionCount()) {
+    std::cout << colorize("Internal error, no files read! Please try again!", Color::RED) << std::endl;
+    this->partIndex = 0;
+    return false;
+  }
+  System* system = mbr->getPartitions()[partIndex].system;
+  if (system == nullptr) {
+    std::cout << colorize("Error: Cannot create File without a filesystem! First create one with createPart!" , Color::RED) << std::endl;
+    return false;
+  }
+
+  std::shared_ptr<File> file = system->createFile(name, 0, flags);
+  if (file == nullptr) {
+    return false;
+  }
+  return file->resizeFile(fileSize);
+}
+
+bool MainWindow::listFiles() {
+  if (mbrIndex >= this->drives.size()) {
+    std::cout << colorize("Internal error, no files read! Please try again!", Color::RED) << std::endl;
+    this->mbrIndex = 0;
+    return false;
+  }
+  MBR* mbr = this->drives.at(mbrIndex);
+  if (partIndex > mbr->getPartitionCount()) {
+    std::cout << colorize("Internal error, no files read! Please try again!", Color::RED) << std::endl;
+    this->partIndex = 0;
+    return false;
+  }
+  if (mbr->getPartitions()[partIndex].system == nullptr){
+    std::cout << colorize("No files found. Partition is not formatted.", Color::MAGENTA) << std::endl;
+    return true;
+  }
+  System* system = mbr->getPartitions()[partIndex].system;
+  std::vector<std::shared_ptr<File>> files = system->getAllFiles();
+  for (std::shared_ptr<File> f : files) {
+    std::cout << "File \"" << colorize(*(f->getFilePath()), Color::YELLOW) << "\" Flags =" << f->getFlags() << "\n";
+  }
+  std::cout.flush();
+  return true;
+}
+
+bool MainWindow::deleteFile(std::string* name) {
+  if (mbrIndex >= this->drives.size()) {
+    std::cout << colorize("Internal error, no files deleted!", Color::RED) << std::endl;
+    this->mbrIndex = 0;
+    return false;
+  }
+  MBR* mbr = this->drives.at(mbrIndex);
+  if (partIndex > mbr->getPartitionCount()) {
+    std::cout << colorize("Internal error, no files deleted!", Color::RED) << std::endl;
+    this->partIndex = 0;
+    return false;
+  }
+  return this->drives.at(mbrIndex)->getPartitions()[partIndex].system->deleteFile(name);
+}
+
+bool MainWindow::insertFile(std::string* name, std::string pathToCopyFrom) {
+    if (mbrIndex >= this->drives.size()) {
+        std::cout << colorize("Internal error, Could not find file in system!", Color::RED) << std::endl;
+        this->mbrIndex = 0;
+        return false;
+    }
+    MBR* mbr = this->drives.at(mbrIndex);
+    if (partIndex >= mbr->getPartitionCount()) {
+        std::cout << colorize("Internal error, Could not find file in system!", Color::RED) << std::endl;
+        this->partIndex = 0;
+        return false;
+    }
+    System* system = mbr->getPartitions()[partIndex].system;
+    if (system == nullptr) {
+        std::cout << colorize("Error: Cannot insert into File without a filesystem! First create one with createPart and then a file!" , Color::RED) << std::endl;
+        return false;
+    }
+    using namespace std;
+
+    shared_ptr<File> internFile = system->getFile(name);
+    if (internFile == nullptr) {
+        cout << colorize("Error: No file with that name found in system! Please create one first with createFile!", Color::RED) << endl;
+        return false;
+    }
+
+    size_t filelen = 0;
+
+    try {
+      filelen = filesystem::file_size(pathToCopyFrom);
+    } catch (exception* ex) {
+      std::cout << colorize("Error: Cannot find input-file!", Color::RED) << std::endl;
+      return false;
+    }
+
+    if (!internFile->resizeFile(filelen)) {
+        cout << colorize("Error: Cannot resize File!", Color::RED) << endl;
+        return false;
+    }
+
+    ifstream inputFile(pathToCopyFrom);
+
+    if(!inputFile.is_open()) {
+        cout << colorize("Error: Cannot open input-file!", Color::RED) << endl;
+        return false;
+    }
+
+    Array* arr = new Array(filelen);
+    if (arr == nullptr) {
+        cout << colorize("Error: Cannot save file in fs!", Color::RED) << endl;
+        return false;
+    }
+
+    string line;
+    unsigned char* curPtr = arr->getArray();
+    while (getline(inputFile, line)) {
+        strncpy(reinterpret_cast<char*>(curPtr), line.c_str(), line.size());
+    }
+
+    inputFile.close();
+
+    if (!internFile->setData(arr)) {
+        cout << colorize("Error: Cannot save file in fs!", Color::RED) << endl;
+    }
+
+    delete arr;
+    return true;
+}
+
+bool MainWindow::readFile(std::string* name, std::ostream& outputStream) {
+    if (mbrIndex >= this->drives.size()) {
+            std::cout << colorize("Internal error, Could not find file in system!", Color::RED) << std::endl;
+            this->mbrIndex = 0;
+            return false;
+        }
+        MBR* mbr = this->drives.at(mbrIndex);
+        if (partIndex >= mbr->getPartitionCount()) {
+            std::cout << colorize("Internal error, Could not find file in system!", Color::RED) << std::endl;
+            this->partIndex = 0;
+            return false;
+        }
+        System* system = mbr->getPartitions()[partIndex].system;
+        if (system == nullptr) {
+            std::cout << colorize("Error: Cannot insert into File without a filesystem! First create one with createPart and then a file!" , Color::RED) << std::endl;
+            return false;
+        }
+        using namespace std;
+
+        shared_ptr<File> internFile = system->getFile(name);
+        if (internFile == nullptr) {
+            cout << colorize("Error: No file with that name found in system! Please create one first with createFile!", Color::RED) << endl;
+            return false;
+        }
+
+
+        unique_ptr<Array> arr = internFile->getData();
+        if (arr == nullptr) {
+            cout << colorize("Error: Cannot save file in fs!", Color::RED) << endl;
+            return false;
+        }
+
+        for (size_t i = 0; i < arr->getLength(); i++) {
+            outputStream << (arr->getArray() + i);
+        }
+        outputStream.flush();
+
+        arr.reset();
+        return true;
+}
+
+void MainWindow::setCommandHints() {
+  cmds.clear();
+  cmds.push_back(Command::EXIT);
+  cmds.push_back(Command::DISK_CREATE);
+  if (this->drives.size() == 0) {
+    setHelpCommands(cmds);
+    return;
+  }
+  cmds.push_back(Command::DISK_WIPE);
+  cmds.push_back(Command::DISK_DELETE);
+  cmds.push_back(Command::DISK_CHANGE);
+  if (mbrIndex >= this->drives.size())
+    mbrIndex = 0;
+  MBR* curMbr = this->drives.at(mbrIndex);
+  size_t PART_COUNT = curMbr->getPartitionCount();
+  if (PART_COUNT < MBR::MAX_PARTITION_COUNT) {
+    cmds.push_back(Command::PARTITION_CREATE);
+  }
+  if (partIndex > PART_COUNT)
+    partIndex = 0;
+  if (PART_COUNT > 0) {
+    cmds.push_back(Command::PARTITION_FORMAT);
+    cmds.push_back(Command::PARTITION_CHANGE);
+    cmds.push_back(Command::PARTITION_DELETE);
+  }
+  if (curMbr->getPartitions()[0].system == nullptr) {
+    setHelpCommands(cmds);
+    return;
+  }
+  cmds.push_back(Command::PARTITION_GET_FRAGMENTATION);
+  cmds.push_back(Command::PARTITION_DEFRAGMENT);
+  size_t FILE_COUNT = curMbr->getPartitions()[0].system->getFileCount();
+  size_t FREE_SPACE = curMbr->getPartitions()[0].system->getFreeSpace();
+  cmds.push_back(Command::FILE_LIST);
+  if (FREE_SPACE > 0) {
+    cmds.push_back(Command::FILE_CREATE);
+  }
+  if (FILE_COUNT > 0) {
+    cmds.push_back(Command::FILE_DELETE);
+    cmds.push_back(Command::FILE_INSERT);
+    cmds.push_back(Command::FILE_READ);
+  }
+
+  setHelpCommands(cmds);
+}

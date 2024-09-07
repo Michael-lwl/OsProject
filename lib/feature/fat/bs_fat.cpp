@@ -88,7 +88,7 @@ unsigned long BsFat::getFreeSpace() {
         if (getCluster(i)->status == Status::FREE)
             counter++;
     }
-    return counter;
+    return counter * this->BLOCK_SIZE;
 }
 
 bool BsFat::hasFreeFileSpace()
@@ -99,7 +99,7 @@ bool BsFat::hasFreeFileSpace()
 unsigned long BsFat::getFileCount() {
     unsigned long output = 0;
     for (unsigned long i = 0; i < MAX_FILE_COUNT; i++) {
-        if (files[i]->getFileStart() != nullptr)
+        if (files[i]->getFlags() != 0)
             output++;
     }
     return output;
@@ -144,6 +144,18 @@ bool BsFat::saveInFile(std::string* filePath, std::shared_ptr<Array> data){
 
 std::shared_ptr<File> BsFat::getFile(std::string* filePath) {
     return getBsFileForPath(filePath);
+}
+
+std::vector<std::shared_ptr<File>> BsFat::getAllFiles() {
+    std::vector<std::shared_ptr<File>> output;
+
+    for (size_t i = 0; i < MAX_FILE_COUNT; i++) {
+        if (this->files[i]->getFlags() != 0) {
+            output.push_back(this->files[i]);
+        }
+    }
+
+    return output;
 }
 
 BsCluster* BsFat::getNewCluster() {

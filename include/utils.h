@@ -81,4 +81,6 @@ inline void showDefragMsg(int percent) {
     *SysOut() << "Defragmentation status:\t" << percent << "%" << std::endl;
 }
 
+std::string convertToHtmlWithColors(const std::string& input);
+
 #endif

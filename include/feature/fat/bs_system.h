@@ -83,6 +83,7 @@ class BsFat : public System
         std::shared_ptr<File> createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) override;
         bool saveInFile(std::string* filePath, std::shared_ptr<Array> data) override;
         std::shared_ptr<File> getFile(std::string* filePath) override;
+        std::vector<std::shared_ptr<File>> getAllFiles() override;
         float getFragmentation() override;
         bool defragDisk() override;
 

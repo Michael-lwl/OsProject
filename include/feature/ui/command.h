@@ -17,6 +17,8 @@ public:
     static const Command PARTITION_DELETE;
     static const Command PARTITION_CHANGE;
     static const Command PARTITION_FORMAT;
+    static const Command PARTITION_GET_FRAGMENTATION;
+    static const Command PARTITION_DEFRAGMENT;
     static const Command FILE_CREATE;
     static const Command FILE_LIST;
     static const Command FILE_DELETE;
@@ -26,7 +28,7 @@ public:
     //Getter
     static const std::vector<Command> getAllCommands() {
         std::vector<Command> cmds;
-        cmds.reserve(15);
+        cmds.reserve(17);
         cmds.push_back(Command::EXIT);
         cmds.push_back(Command::DISK_CREATE);
         cmds.push_back(Command::DISK_DELETE);
@@ -36,6 +38,8 @@ public:
         cmds.push_back(Command::PARTITION_DELETE);
         cmds.push_back(Command::PARTITION_CHANGE);
         cmds.push_back(Command::PARTITION_FORMAT);
+        cmds.push_back(Command::PARTITION_GET_FRAGMENTATION);
+        cmds.push_back(Command::PARTITION_DEFRAGMENT);
         cmds.push_back(Command::FILE_CREATE);
         cmds.push_back(Command::FILE_LIST);
         cmds.push_back(Command::FILE_DELETE);

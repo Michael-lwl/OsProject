@@ -279,6 +279,8 @@ class INodeSystem : public System {
         /// Returns the file via the INodes' id.
         /// Might return null!
         std::shared_ptr<File> getFile(unsigned long iNodeId);
+
+        std::vector<std::shared_ptr<File>> getAllFiles() override ;
         float getFragmentation() override;
         bool defragDisk() override;
 

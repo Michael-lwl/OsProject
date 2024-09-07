@@ -104,7 +104,7 @@ class FirstIndirectBlock : public IndirectBlock, public Block {
             status = AdditionalStats::INDIRECT_1;
             // Initialize the blocks array to nullptr
             size_t numPointers = blockSize / sizeof(DataBlock*);
-            for (size_t i = 0; i < numPointers; ++i) {
+            for (size_t i = 0; i < numPointers; i++) {
                 data[i] = nullptr;
             }
         }
@@ -137,7 +137,7 @@ class SecondIndirectBlock : public IndirectBlock, public Block {
                 status = AdditionalStats::INDIRECT_2;
                 // Initialize the blocks array to nullptr
                 size_t numPointers = blockSize / sizeof(FirstIndirectBlock*);
-                for (size_t i = 0; i < numPointers; ++i) {
+                for (size_t i = 0; i < numPointers; i++) {
                     data[i] = nullptr;
                 }
             }
@@ -169,7 +169,7 @@ class ThirdIndirectBlock : public IndirectBlock, public Block {
             status = AdditionalStats::INDIRECT_3;
             // Initialize the blocks array to nullptr
             size_t numPointers = blockSize / sizeof(SecondIndirectBlock*);
-            for (size_t i = 0; i < numPointers; ++i) {
+            for (size_t i = 0; i < numPointers; i++) {
                 data[i] = nullptr;
             }
         }

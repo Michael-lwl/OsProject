@@ -10,6 +10,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QFont>
 #include <qt/QtCore/qglobal.h>
 #include "./command.h"
 #include "./../../utils.h"
@@ -28,6 +29,11 @@ public:
     MainWindow(QWidget* parent = nullptr) : QWidget(parent),
         mbrIndex(0), partIndex(0)    {
         QVBoxLayout* mainLayout = new QVBoxLayout(this);
+        //Monospaced font
+        QFont* textFont = new QFont;
+        textFont->setFamily("monospace [Consolas]");
+        textFont->setFixedPitch(true);
+        textFont->setStyleHint(QFont::TypeWriter);
         //Not writeable text flags
         const Qt::TextInteractionFlags textFlags = Qt::TextInteractionFlag::TextSelectableByMouse
                                                    | Qt::TextInteractionFlag::LinksAccessibleByMouse
@@ -36,6 +42,7 @@ public:
 
         // Create the renderedView (50% height, 100% width)
         this->renderedView = new QTextEdit("*ToBeContinued*");
+        this->renderedView->setFont(*textFont);
         this->renderedView->setMinimumHeight(sizeHint().height() * 0.5);
         this->renderedView->setTextInteractionFlags(textFlags);
         mainLayout->addWidget(this->renderedView);
@@ -49,6 +56,7 @@ public:
 
         // logView (80% height, 100% width)
         this->logView = new QTextEdit("If you can read this, something has gone terribly wrong\n");
+        this->logView->setFont(*textFont);
         this->logView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         this->logView->setTextInteractionFlags(textFlags);
         textGroupLayout->addWidget(this->logView, 8);
@@ -103,13 +111,6 @@ public:
 
         //Init Log window
         Output::os = new std::ostringstream();
-        std::vector<Command> cs;
-        cs.push_back(Command::EXIT);
-        cs.push_back(Command::DISK_WIPE);
-        cs.push_back(Command::DISK_CREATE);
-        cs.push_back(Command::DISK_DELETE);
-        cs.push_back(Command::DISK_CHANGE);
-        setHelpCommands(cs);
 
         buttonContainer->setLayout(this->buttonLayout);
         scrollArea->setWidget(buttonContainer);
@@ -120,8 +121,8 @@ public:
         bottomGroup->addWidget(scrollableCommandView);
 
         // Set proportions for bottomGroup
-        bottomGroup->setStretchFactor(0, 7);  // textGroup takes 70%
-        bottomGroup->setStretchFactor(1, 3);  // scrollableCommandView takes remaining space (30%)
+        bottomGroup->setStretchFactor(0, 6);  // textGroup takes 60%
+        bottomGroup->setStretchFactor(1, 4);  // scrollableCommandView takes remaining space (40%)
 
         mainLayout->addWidget(bottomGroup);
 
@@ -130,12 +131,17 @@ public:
         std::cout << "Welcome to our Project: A Drive-Simulator" << std::endl;
         MBR* mbr = new MBR(8 * getSizeInByte(MiB));
         mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB));
-        drives.push_back(mbr);
+        mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB), SpeicherSystem::INODE);
+        this->drives.push_back(mbr);
         loadDrive();
+        setCommandHints();
     }
 
     ~MainWindow() {
         //Set cout buffer to its original buffer!
+        for (MBR* mbr : drives) {
+            delete mbr;
+        }
         std::cout.rdbuf(originalCoutBuffer);
         delete customBuffer;
     }
@@ -158,11 +164,11 @@ protected:
 
     void loadDrive();
 
-    bool createDisk(unsigned long long size, ByteSizes byteSize);
+    bool createDisk(size_t size, ByteSizes byteSize);
     bool deleteDisk(size_t index);
     bool changeDisk();
     bool wipeDisk(size_t index);
-    bool createPart(unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
+    bool createPart(size_t size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
     bool deletePart(size_t index);
     bool changePart();
     bool formatPart(size_t index, unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
@@ -184,6 +190,14 @@ private:
     std::ostringstream oss;
     CustomStreamBuf* customBuffer;
     std::streambuf* originalCoutBuffer;
+    std::vector<Command> cmds;
+
+    void updateAll() {
+        loadDrive();
+        setCommandHints();
+    }
+
+    void setCommandHints();
 };
 
 

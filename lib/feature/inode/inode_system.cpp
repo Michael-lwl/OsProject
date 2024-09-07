@@ -177,6 +177,16 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
   return static_pointer_cast<File>(dir);
 }
 
+std::vector<std::shared_ptr<File>> INodeSystem::getAllFiles() {
+    std::vector<std::shared_ptr<File>> output;
+    for (size_t i = 0; i < this->iNodeCount; i++) {
+        if (this->getINode(i) != nullptr && this->getINode(i)->getFlags() != 0) {
+            output.push_back(std::static_pointer_cast<File>(std::make_shared<INode>(this->iNodes[i])));
+        }
+    }
+    return output;
+}
+
 float INodeSystem::getFragmentation() {
   long free = 0;
   long freeMax = 0;
