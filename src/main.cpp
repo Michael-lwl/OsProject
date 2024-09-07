@@ -184,14 +184,22 @@ int test_mbr() {
   MBR mbr(8455716863);
   std::cout << "Erstellung mBR erfolgreich" << std::endl;
   mbr.createPartition(2000000);
-  std::cout << "Erstellung P1 erfolgreich" << std::endl;
+  mbr.createPartition(500000,INODE);
   mbr.createPartition(1000000);
+  mbr.createPartition(6000000,INODE);
   std::cout << "Erstellung P1 erfolgreich" << std::endl;
   Partition p = mbr.getSingularPartition(0);
+  mbr.checkPartitionsize(p);
+  mbr.checkSizeReserviert();
+  mbr.getPartition();
+  Partition p2 = mbr.getSingularPartition(1);
   std::cout << "Partition selektiert" << std::endl;
+  mbr.deletePartition(0);
+  Partition p3 = mbr.getSingularPartition(1);
+  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p2) << "Bytes" << std::endl;;
   std::cout << "Die Partition hat" << mbr.checkPartitionsize(p) << "Bytes" << std::endl;;
 
-  return 1;
+  return 0;
 }
 
 int main(int argc, char **argv) {
