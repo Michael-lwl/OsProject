@@ -21,6 +21,7 @@ const int BOOT_SECTOR = 0x01FF;
 const unsigned int maxSectors = 63;
 const unsigned int maxHeads = 256;
 const unsigned int maxCylinders = 1024;
+const size_t MAX_PARTITION_COUNT = 4;
 
 enum SpeicherSystem : unsigned char {
 BS_FAT,
@@ -163,7 +164,7 @@ unsigned long long checkSizeReserviert() { //Hilfsmethode um komplett genutzen S
 
     void deletePartition(int i) { //Hilfsmethode um Partition zu löschen
     unsigned long long reserved[4] = {0};
-    if(Partitions[i].firstSektor != NULL && Partitions[i].lastSektor != NULL && i < 4 && i > 0) {
+    if(Partitions[i].firstSektor != NULL && Partitions[i].lastSektor != NULL && i > 3 && i < 0) {
         throw std::out_of_range("Es gibt diesen Eintrag nicht");
     }
     else {
@@ -186,11 +187,11 @@ unsigned long long checkSizeReserviert() { //Hilfsmethode um komplett genutzen S
 
 
         }
-        Partitions[0] = {0};
+        Partitions[0] = {0}; //Setzt Partitions array auf 0
         Partitions[1] = {0};
         Partitions[2] = {0};
         Partitions[3] = {0};
-        for(int k = 0; k < 4; k++) {
+        for(int k = 0; k < 4; k++) { // füllt den Array mit den nicht gelöschten Werten
             if(reserved[k] != 0) {
                 Partitions[k] = createPartition( reserved[k], p[k].type);
 
@@ -231,7 +232,7 @@ Partition getSingularPartition(int i = 0) {
         return I;
     }
 private:
-    Partition Partitions[4] = { 0 };
+    Partition Partitions[MAX_PARTITION_COUNT] = { 0 };
     const int identificationCode = 0xAA55;
     unsigned long MaxSpeicherplatz;
     unsigned int ParitionEntries = 0;
