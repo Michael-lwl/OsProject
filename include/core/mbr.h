@@ -98,7 +98,7 @@ MBR(long MaxSpeicherplatz){
 this->MaxSpeicherplatz = MaxSpeicherplatz;
 }
 Partition createPartition(unsigned long long Speicherplatz ,SpeicherSystem System = BS_FAT, unsigned int BlockSize = 512){ //erstellt Partitio
-//Todo check Rest Speicherplatz
+
 if(Partitions[0].firstSektor != NULL && Partitions[0].lastSektor != NULL) {
     unsigned long long LBA = checkLBA();
     if(MaxSpeicherplatz < Speicherplatz + LBA ) {
@@ -155,7 +155,7 @@ unsigned long long checkLBA(){ //berechnet wie viel Byte bisher belegt sind. Die
     CHS* createSector(unsigned long long speicherplatzInBytes, unsigned int BlockSize = 512) { //Erstelle eineN CHS Sektor
     CHS* sector = new CHS ;
     unsigned int Speicherplatz = speicherplatzInBytes / BlockSize;
-    unsigned long maxSpeicher =  maxCylinders * maxHeads * maxSectors; //Todo Restspeicher abziehen
+    unsigned long maxSpeicher =  maxCylinders * maxHeads * maxSectors;
     if ( Speicherplatz >= maxSpeicher) {
         throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
     }
