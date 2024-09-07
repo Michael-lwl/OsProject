@@ -4,6 +4,7 @@
 #include "./data.h"
 #include "./states.h"
 #include "./file.h"
+#include "data_sizes.h"
 #include "directory.h"
 #include <exception>
 #include <iostream>
@@ -16,10 +17,10 @@ class System {
 
     public:
 
-        const size_t BLOCK_SIZE;
+        const BlockSizes BLOCK_SIZE;
         const size_t DRIVE_SIZE;
 
-        System(Data* dataHandler, size_t driveSize, size_t blockSize): BLOCK_SIZE(blockSize), DRIVE_SIZE(driveSize){
+        System(Data* dataHandler, size_t driveSize, BlockSizes blockSize): BLOCK_SIZE(blockSize), DRIVE_SIZE(driveSize){
             if (dataHandler == nullptr) {
                 throw std::exception();
             }

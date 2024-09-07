@@ -32,7 +32,7 @@ class BsFat : public System
 
     public:
         // Factory function to allocate and construct BsFat with extra memory
-        static BsFat* create(void* memory, unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+        static BsFat* create(void* memory, unsigned long driveSize, BlockSizes blockSize, Data* dataHandler) {
             size_t bsFatSize = sizeof(BsFat);
             if (driveSize <= bsFatSize) {
                 return nullptr;
@@ -68,7 +68,7 @@ class BsFat : public System
             for (size_t i = 0; i < MAX_FILE_COUNT; i++) {
                 files[i].reset();
             }
-            
+
         }
 
         void delFile(long index);
@@ -120,7 +120,7 @@ class BsFat : public System
 
     private:
         // Private constructor to be used by the factory function
-        BsFat(unsigned long driveSize, unsigned long blockSize, Data* dataHandler, unsigned long blockCount)
+        BsFat(unsigned long driveSize, BlockSizes blockSize, Data* dataHandler, unsigned long blockCount)
             : System(dataHandler, driveSize, blockSize), blockCount(blockCount) {
             // Initialize BsClusters and associate data with each cluster
             for (size_t i = 0; i < blockCount; i++) {

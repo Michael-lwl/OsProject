@@ -65,7 +65,8 @@ bool MainWindow::handleCommand(str command) {
     return false;
 }
 
-std::string mapMbrToString(MBR& mbr, size_t curPartIndex) {
+std::string mapMbrToString(MBR* mbr, size_t curPartIndex) {
+    if (mbr == nullptr) return "";
     using namespace std;
     string output = "";
     const string BORDER= "|";
@@ -74,13 +75,13 @@ std::string mapMbrToString(MBR& mbr, size_t curPartIndex) {
         float usedPercentage;
     };
     vector<PartitionSize> partSizes;
-    partSizes.reserve(mbr.getPartitionCount());
+    partSizes.reserve(mbr->getPartitionCount());
     for (size_t i = 0; i < MBR::MAX_PARTITION_COUNT; i++) {
-        if (mbr.getPartitions()[i].firstSektor == nullptr) {
+        if (mbr->getPartitions()[i].firstSektor == nullptr) {
             continue;
         }
-        const size_t ds = mbr.getPartitions()[i].system->DRIVE_SIZE;
-        const size_t freeSpace = mbr.getPartitions()[i].system->getFreeSpace();
+        const size_t ds = mbr->getPartitions()[i].system->DRIVE_SIZE;
+        const size_t freeSpace = mbr->getPartitions()[i].system->getFreeSpace();
         PartitionSize ps = {i, static_cast<float>(ds - freeSpace) / ds};
         partSizes.push_back(ps);
     }
@@ -110,6 +111,7 @@ std::string mapMbrToString(MBR& mbr, size_t curPartIndex) {
             curIndex++;
         }
     }
+    return output;
 }
 
 void MainWindow::loadDrive() {
@@ -122,7 +124,7 @@ void MainWindow::loadDrive() {
     string output = "Drive No: ";
     output.append(to_string(mbrIndex));
     output.append("\n");
-    if (this->drives.at(mbrIndex).getPartitionCount() != 0)
+    if (this->drives.at(mbrIndex)->getPartitionCount() != 0)
         output.append(mapMbrToString(this->drives.at(mbrIndex), partIndex));
     this->renderedView->setText(QString::fromStdString(output));
 }
@@ -147,7 +149,7 @@ bool MainWindow::wipeDisk(size_t index) {}
 bool MainWindow::createPart(unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize) {}
 bool MainWindow::deletePart(size_t index) {}
 bool MainWindow::changePart() {
-    const size_t partCount = this->drives.at(mbrIndex).getPartitionCount();
+    const size_t partCount = this->drives.at(mbrIndex)->getPartitionCount();
     if (partCount == 0) {
         std::cout << colorize("Error: You have no partitions, create one with createPart.", Color::RED) << std::endl;
         return false;

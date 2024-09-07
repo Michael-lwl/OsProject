@@ -213,7 +213,7 @@ class INodeSystem : public System {
             return finalNumberOfInodes;
         }
 
-        static INodeSystem* create(void* memory, unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+        static INodeSystem* create(void* memory, unsigned long driveSize, BlockSizes blockSize, Data* dataHandler) {
             size_t inodeSystemSize = sizeof(INodeSystem);
             if (driveSize <= inodeSystemSize) {
                 return nullptr;
@@ -319,7 +319,7 @@ class INodeSystem : public System {
         const size_t dataBlockCount;
     private:
 
-      INodeSystem(size_t driveSizeInBytes, size_t blockSize, Data* dataHandler, size_t iNodeCount) :
+      INodeSystem(size_t driveSizeInBytes, BlockSizes blockSize, Data* dataHandler, size_t iNodeCount) :
         System(dataHandler, driveSizeInBytes, blockSize) ,
         iNodeSize(getBytesPerInode(driveSizeInBytes)),
         iNodeCount(iNodeCount),

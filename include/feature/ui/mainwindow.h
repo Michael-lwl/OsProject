@@ -25,7 +25,8 @@ QT_END_NAMESPACE
 
 class MainWindow : public QWidget {
 public:
-    MainWindow(QWidget* parent = nullptr) : QWidget(parent) {
+    MainWindow(QWidget* parent = nullptr) : QWidget(parent),
+        mbrIndex(0), partIndex(0)    {
         QVBoxLayout* mainLayout = new QVBoxLayout(this);
         //Not writeable text flags
         const Qt::TextInteractionFlags textFlags = Qt::TextInteractionFlag::TextSelectableByMouse
@@ -127,8 +128,8 @@ public:
         // Set the layout to the main window
         setLayout(mainLayout);
         std::cout << "Welcome to our Project: A Drive-Simulator" << std::endl;
-        MBR mbr = MBR(8 * getSizeInByte(MiB));
-        mbr.getPartitions()[0] = new Partition
+        MBR* mbr = new MBR(8 * getSizeInByte(MiB));
+        mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB));
         drives.push_back(mbr);
         loadDrive();
     }
@@ -172,7 +173,7 @@ protected:
     bool readFile(std::string* name, std::ostream& outputStream = std::cout);
 
 private:
-    std::vector<MBR> drives;
+    std::vector<MBR*> drives;
     size_t mbrIndex;
     size_t partIndex;
     QTextEdit* renderedView;

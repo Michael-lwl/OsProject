@@ -192,16 +192,19 @@ int test_mbr() {
   mbr.createPartition(1000000);
   mbr.createPartition(6000000,INODE);
   std::cout << "Erstellung P1 erfolgreich" << std::endl;
-  Partition p = mbr.getSingularPartition(0);
-  mbr.checkPartitionsize(p);
+  Partition* p = mbr.getSingularPartition(0);
+  if (p != nullptr)
+    mbr.checkPartitionsize(*p);
   mbr.checkSizeReserviert();
-  mbr.getPartition();
-  Partition p2 = mbr.getSingularPartition(1);
+  mbr.getPartitions();
+  Partition* p2 = mbr.getSingularPartition(1);
   std::cout << "Partition selektiert" << std::endl;
   mbr.deletePartition(0);
-  Partition p3 = mbr.getSingularPartition(1);
-  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p2) << "Bytes" << std::endl;;
-  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p) << "Bytes" << std::endl;
+  Partition* p3 = mbr.getSingularPartition(1);
+  if (p2 != nullptr)
+    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p2) << "Bytes" << std::endl;;
+  if (p != nullptr)
+    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p) << "Bytes" << std::endl;
 
   return 0;
 }
@@ -215,11 +218,12 @@ int main(int argc, char **argv) {
   // output |= test_BsFat(memorySize, blockSize);
   // output |= test_INodes(memorySize, blockSize);
   // return output;
-  QApplication app(argc, argv);
+  // QApplication app(argc, argv);
 
-  MainWindow mainWindow;
-  mainWindow.setWindowTitle("OsProject");
-  mainWindow.showMaximized();
+  // MainWindow mainWindow;
+  // mainWindow.setWindowTitle("OsProject");
+  // mainWindow.showMaximized();
 
-  return app.exec();
+  // return app.exec();
+  return test_mbr();
 }

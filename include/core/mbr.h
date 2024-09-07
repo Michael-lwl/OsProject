@@ -55,17 +55,6 @@ public:
     this->MaxSpeicherplatz = driveSize;
     this->sectorsCount = 0;
   }
-  BsFat *bootBSFat(unsigned int blockSize, unsigned int memorySize, Data *dataHandler) {
-    void *memory = ::operator new(memorySize); // Raw allocation
-    BsFat *B = BsFat::create(memory, memorySize, blockSize, dataHandler);
-    return B;
-  }
-
-  INodeSystem *bootINode(int blockSize, int memorySize, Data *dataHandler) {
-    void *memory = ::operator new(memorySize); // Raw allocation
-    INodeSystem *I = INodeSystem::create(memory, memorySize, blockSize, dataHandler);
-    return I;
-  }
 
   // Getter
   unsigned int getSectorsCount() { return sectorsCount; }
@@ -75,7 +64,7 @@ public:
   size_t getPartitionCount() {
     size_t output = 0;
     for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
-      if (partitions[i].firstSektor == nullptr || partitions[i].length != 0)
+      if (partitions[i].firstSektor == nullptr)
         output++;
     }
     return output;
@@ -143,6 +132,7 @@ public:
         return Ergebnis;
       }
     }
+    return 0;
   }
 
   CHS *createSector(unsigned long long speicherplatzInBytes, unsigned int BlockSize = 512) { // Erstelle eineN CHS Sektor
@@ -201,17 +191,17 @@ public:
 
   void deletePartition(int i) { // Hilfsmethode um Partition zu löschen
     unsigned long long reserved[4] = {0};
-    if (partitions[i].firstSektor != NULL && partitions[i].lastSektor != NULL && !(i < 4 && i > 0)) {
+    if (partitions[i].firstSektor == nullptr || partitions[i].lastSektor == nullptr || (i > 3 || i < 0)) {
       throw std::out_of_range("Es gibt diesen Eintrag nicht");
     } else {
       Partition p[4] = {0};
       for (int j = 0; j < 4 - 1; j++) {
-        if (i != j) { // wenn j != i ist das ein Eintrag der nicht gelöscht oder verschoben werden muss
-          reserved[j] = checkPartitionsize(getSingularPartition(j));
+        if (i != j && getSingularPartition(j) != nullptr) { // wenn j != i ist das ein Eintrag der nicht gelöscht oder verschoben werden muss
+          reserved[j] = checkPartitionsize(*getSingularPartition(j));
           p->type = partitions[j].type;
         } else if (i == j && i < 5) { // überspringt den Eintrag der gelöscht werden soll und speichert die Größe der Einträge die nicht gelöscht werden müssen
-          if (partitions[j + 1].firstSektor != NULL) {
-            reserved[j] = checkPartitionsize(getSingularPartition(j + 1));
+          if (partitions[j + 1].firstSektor != NULL && getSingularPartition(j+1) != nullptr) {
+            reserved[j] = checkPartitionsize(*getSingularPartition(j + 1));
             p[j].type = partitions[j + 1].type;
             i++;
           }
@@ -223,7 +213,10 @@ public:
       partitions[3] = {0};
       for (int k = 0; k < 4; k++) {
         if (reserved[k] != 0) {
-          partitions[k] = createPartition(reserved[k], p[k].type);
+            if (p[k].system != nullptr)
+                partitions[k] = createPartition(reserved[k], p[k].type, p[k].system->BLOCK_SIZE);
+            else
+                partitions[k] = createPartition(reserved[k], p[k].type);
         } else if (reserved[k] == 0) {
           partitions[k] = {0};
         }
@@ -231,14 +224,16 @@ public:
     }
   }
 
-  unsigned long long getMaxSpeicherplatz() { return this->MaxSpeicherplatz; }
-  Partition *getPartition() { return partitions; }
-  Partition getSingularPartition(int i = 0) {
-    if (i > 3) {
-      throw std::out_of_range(
-          "Partition index übersteigt den Maximalenwert von 4");
+  unsigned long long getMaxSpeicherplatz() {
+    return this->MaxSpeicherplatz;
+  }
+  Partition *getPartitions() { return partitions; }
+  Partition* getSingularPartition(unsigned int i = 0) {
+    if (i >= MAX_PARTITION_COUNT) {
+      std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
+      return nullptr;
     }
-    return partitions[i];
+    return partitions + i;
   }
   // Erstellt ein System und gibt das zurück
   System *createSystem(SpeicherSystem System, unsigned int Speicher, Data *datahandler, BlockSizes BlockSize = BlockSizes::B_512) {
@@ -248,7 +243,7 @@ public:
     } else if (System == INODE) {
       return bootINode(memory, BlockSize, Speicher, datahandler);
     } else {
-      throw("Das System konnte nicht erstellt werden");
+        return nullptr;
     }
   }
 
