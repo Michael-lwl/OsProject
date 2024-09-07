@@ -10,8 +10,11 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <qt/QtCore/qglobal.h>
 #include "./command.h"
-#include "./../../../include/utils.h"
+#include "./../../utils.h"
+#include "./../../core/stream_buf.h"
+#include "./../../core/mbr.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -24,11 +27,17 @@ class MainWindow : public QWidget {
 public:
     MainWindow(QWidget* parent = nullptr) : QWidget(parent) {
         QVBoxLayout* mainLayout = new QVBoxLayout(this);
+        //Not writeable text flags
+        const Qt::TextInteractionFlags textFlags = Qt::TextInteractionFlag::TextSelectableByMouse
+                                                   | Qt::TextInteractionFlag::LinksAccessibleByMouse
+                                                   | Qt::TextInteractionFlag::TextSelectableByKeyboard
+                                                   | Qt::TextInteractionFlag::LinksAccessibleByKeyboard;
 
         // Create the renderedView (50% height, 100% width)
-        QTextEdit* renderedView = new QTextEdit("*ToBeContinued*");
-        renderedView->setMinimumHeight(sizeHint().height() * 0.5);
-        mainLayout->addWidget(renderedView);
+        this->renderedView = new QTextEdit("*ToBeContinued*");
+        this->renderedView->setMinimumHeight(sizeHint().height() * 0.5);
+        this->renderedView->setTextInteractionFlags(textFlags);
+        mainLayout->addWidget(this->renderedView);
 
         // Create the bottomGroup (remaining space)
         QSplitter* bottomGroup = new QSplitter(Qt::Horizontal);
@@ -38,42 +47,42 @@ public:
         QVBoxLayout* textGroupLayout = new QVBoxLayout(textGroup);
 
         // logView (80% height, 100% width)
-        logView = new QTextEdit("Welcome to our Project: A Drive-Simulator");
-        logView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        const Qt::TextInteractionFlags textFlags = Qt::TextInteractionFlag::TextSelectableByMouse
-                                     | Qt::TextInteractionFlag::LinksAccessibleByMouse
-                                     | Qt::TextInteractionFlag::TextSelectableByKeyboard
-                                     | Qt::TextInteractionFlag::LinksAccessibleByKeyboard;
-        logView->setTextInteractionFlags(textFlags);
-        textGroupLayout->addWidget(logView, 8);
+        this->logView = new QTextEdit("If you can read this, something has gone terribly wrong\n");
+        this->logView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        this->logView->setTextInteractionFlags(textFlags);
+        textGroupLayout->addWidget(this->logView, 8);
+
+        //Redirect cout to our custom buffer
+        this->customBuffer = new CustomStreamBuf(oss, logView);
+        this->originalCoutBuffer = std::cout.rdbuf(customBuffer);  // Redirect std::cout to the custom buffer
 
         // Horizontal layout for the command input field and button
         QWidget* commandInputWidget = new QWidget;
         QHBoxLayout* commandInputLayout = new QHBoxLayout(commandInputWidget);
 
         // commandInput (command input text field)
-        commandInput = new QLineEdit();
-        commandInput->setPlaceholderText("Enter command...");
-        commandInputLayout->addWidget(commandInput);
+        this->commandInput = new QLineEdit();
+        this->commandInput->setPlaceholderText("Enter command...");
+        commandInputLayout->addWidget(this->commandInput);
 
         // Command button next to the command input field (square button)
-        commandButton = new QPushButton("Send");
-        commandButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-        commandInputLayout->addWidget(commandButton);
+        this->commandButton = new QPushButton("↵");
+        this->commandButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+        commandInputLayout->addWidget(this->commandButton);
 
         // Adjust size to make the button square without using resizeEvent
-        QObject::connect(commandButton, &QPushButton::clicked, this, [this]() {
-            int height = commandButton->height();
-            commandButton->setFixedWidth(height);
+        QObject::connect(this->commandButton, &QPushButton::clicked, this, [this]() {
+            if (this->handleCommand(this->commandInput->text().toStdString()))
+                this->commandInput->clear();
         });
 
         // Capture '\n’ as send command
-        QObject::connect(commandInput, &QLineEdit::returnPressed, this, [this]() {
+        QObject::connect(this->commandInput, &QLineEdit::returnPressed, this, [this]() {
             // Handle the Enter/Return key press here.
-            QString command = commandInput->text();
+            QString command = this->commandInput->text();
             // Clear the input after handling the command
             if (handleCommand(command.toStdString()))
-                commandInput->clear();
+                this->commandInput->clear();
         });
 
         textGroupLayout->addWidget(commandInputWidget, 2);
@@ -89,15 +98,19 @@ public:
         // Add a scrollable area for the buttons
         QScrollArea* scrollArea = new QScrollArea;
         QWidget* buttonContainer = new QWidget;
-        buttonLayout = new QVBoxLayout(buttonContainer);
+        this->buttonLayout = new QVBoxLayout(buttonContainer);
 
         //Init Log window
         Output::os = new std::ostringstream();
         std::vector<Command> cs;
         cs.push_back(Command::EXIT);
+        cs.push_back(Command::DISK_WIPE);
+        cs.push_back(Command::DISK_CREATE);
+        cs.push_back(Command::DISK_DELETE);
+        cs.push_back(Command::DISK_CHANGE);
         setHelpCommands(cs);
 
-        buttonContainer->setLayout(buttonLayout);
+        buttonContainer->setLayout(this->buttonLayout);
         scrollArea->setWidget(buttonContainer);
         scrollArea->setWidgetResizable(true);
 
@@ -113,6 +126,17 @@ public:
 
         // Set the layout to the main window
         setLayout(mainLayout);
+        std::cout << "Welcome to our Project: A Drive-Simulator" << std::endl;
+        MBR mbr = MBR(8 * getSizeInByte(MiB));
+        mbr.getPartitions()[0] = new Partition
+        drives.push_back(mbr);
+        loadDrive();
+    }
+
+    ~MainWindow() {
+        //Set cout buffer to its original buffer!
+        std::cout.rdbuf(originalCoutBuffer);
+        delete customBuffer;
     }
 
     void setHelpCommands(std::vector<Command> commands);
@@ -131,11 +155,34 @@ protected:
 
     bool handleCommand(str command);
 
+    void loadDrive();
+
+    bool createDisk(unsigned long long size, ByteSizes byteSize);
+    bool deleteDisk(size_t index);
+    bool changeDisk();
+    bool wipeDisk(size_t index);
+    bool createPart(unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
+    bool deletePart(size_t index);
+    bool changePart();
+    bool formatPart(size_t index, unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
+    bool createFile(std::string* name, unsigned long long fileSize, unsigned char flags = Flags::ASCII);
+    bool listFiles();
+    bool deleteFile(std::string* name);
+    bool insertFile(std::string* name, std::string pathToCopyFrom);
+    bool readFile(std::string* name, std::ostream& outputStream = std::cout);
+
 private:
+    std::vector<MBR> drives;
+    size_t mbrIndex;
+    size_t partIndex;
+    QTextEdit* renderedView;
     QTextEdit* logView;
     QPushButton* commandButton;
     QVBoxLayout* buttonLayout;
     QLineEdit* commandInput;
+    std::ostringstream oss;
+    CustomStreamBuf* customBuffer;
+    std::streambuf* originalCoutBuffer;
 };
 
 

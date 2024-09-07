@@ -11,25 +11,36 @@ public:
     static const Command EXIT;
     static const Command DISK_CREATE;
     static const Command DISK_DELETE;
+    static const Command DISK_CHANGE;
     static const Command DISK_WIPE;
     static const Command PARTITION_CREATE;
     static const Command PARTITION_DELETE;
+    static const Command PARTITION_CHANGE;
     static const Command PARTITION_FORMAT;
+    static const Command FILE_CREATE;
+    static const Command FILE_LIST;
+    static const Command FILE_DELETE;
+    static const Command FILE_INSERT;
+    static const Command FILE_READ;
 
     //Getter
     static const std::vector<Command> getAllCommands() {
         std::vector<Command> cmds;
-        cmds.reserve(10);
+        cmds.reserve(15);
         cmds.push_back(Command::EXIT);
         cmds.push_back(Command::DISK_CREATE);
         cmds.push_back(Command::DISK_DELETE);
+        cmds.push_back(Command::DISK_CHANGE);
         cmds.push_back(Command::DISK_WIPE);
         cmds.push_back(Command::PARTITION_CREATE);
         cmds.push_back(Command::PARTITION_DELETE);
+        cmds.push_back(Command::PARTITION_CHANGE);
         cmds.push_back(Command::PARTITION_FORMAT);
-        // cmds.push_back(Command::);
-        // cmds.push_back(Command::);
-        // cmds.push_back(Command::);
+        cmds.push_back(Command::FILE_CREATE);
+        cmds.push_back(Command::FILE_LIST);
+        cmds.push_back(Command::FILE_DELETE);
+        cmds.push_back(Command::FILE_INSERT);
+        cmds.push_back(Command::FILE_READ);
         return cmds;
     }
 

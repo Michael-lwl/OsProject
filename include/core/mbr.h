@@ -31,6 +31,7 @@ struct Partition {
   CHS *startPtr;
   unsigned int length;
   char type;
+  System* system;
 };
 
 enum SpeicherSystem {
@@ -38,10 +39,11 @@ enum SpeicherSystem {
     INODE
 };
 
-const size_t MAX_PARTITION_COUNT = 4;
 
 class MBR {
 public:
+    static const size_t MAX_PARTITION_COUNT = 4;
+
   MBR(unsigned long long driveSize) {
 
     // Todo Inputs für memorySize und BlockSize für die händische Abfrage
@@ -65,6 +67,15 @@ public:
   unsigned int getSectorsCount() { return sectorsCount; }
   unsigned int getDiskSignature() { return diskSignature; }
   Partition* getPartitions() {return partitions;}
+
+  size_t getPartitionCount() {
+      size_t output = 0;
+      for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
+          if (partitions[i].firstSektor == nullptr || partitions[i].length != 0)
+              output++;
+      }
+      return output;
+  }
   // Setter
 
   void setSectorcount(unsigned int sectorsCount) {
