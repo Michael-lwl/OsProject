@@ -1,6 +1,7 @@
 #include "./../include/utils.h"
 #include "./../include/core/data_impl.h"
 #include "./../include/core/data_sizes.h"
+#include "./../include/core/mbr.h"
 #include "./../include/feature/fat/bs_system.h"
 #include "./../include/feature/inode/inode_system.h"
 #include <cmath>
@@ -179,10 +180,26 @@ int test_INodes(unsigned long long memorySize, BlockSizes blockSize = BlockSizes
   return 0;
 }
 
+int test_mbr() {
+  MBR mbr(8455716863);
+  std::cout << "Erstellung mBR erfolgreich" << std::endl;
+  mbr.createPartition(2000000);
+  std::cout << "Erstellung P1 erfolgreich" << std::endl;
+  mbr.createPartition(1000000);
+  std::cout << "Erstellung P1 erfolgreich" << std::endl;
+  Partition p = mbr.getSingularPartition(0);
+  std::cout << "Partition selektiert" << std::endl;
+  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p) << "Bytes" << std::endl;;
+
+  return 1;
+}
+
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
   int output = 0;
+ //output |= test_BsFat();
+  output |= test_mbr();
   BlockSizes blockSize = BlockSizes::B_512;
   unsigned long long memorySize = 8 * getSizeInByte(ByteSizes::MiB); // 8 MebiByte
   output |= test_BsFat(memorySize, blockSize);
