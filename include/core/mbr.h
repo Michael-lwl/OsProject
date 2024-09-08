@@ -78,6 +78,22 @@ public:
       if (partitions[i].firstSektor == nullptr)
         output++;
     }
+
+    this->MaxSpeicherplatz = driveSize;
+    this->sectorsCount = 0;
+  }
+
+  // Getter
+  unsigned int getSectorsCount() { return sectorsCount; }
+  unsigned int getDiskSignature() { return diskSignature; }
+  Partition *getpartitions() { return partitions; }
+
+  size_t getPartitionCount() {
+    size_t output = 0;
+    for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
+      if (partitions[i].firstSektor == nullptr)
+        output++;
+    }
     return output;
   }
   // Setter
@@ -91,11 +107,13 @@ public:
 
   Partition createPartition(unsigned long long Speicherplatz, SpeicherSystem System = BS_FAT, BlockSizes BlockSize = BlockSizes::B_512) { // erstellt Partitio
     // Todo check Rest Speicherplatz
+  Partition* createPartition(unsigned long long Speicherplatz, SpeicherSystem System = BS_FAT, BlockSizes BlockSize = BlockSizes::B_512) { // erstellt Partitio
     if (partitions[0].firstSektor != NULL && partitions[0].lastSektor != NULL) {
       unsigned long long LBA = checkLBA();
       if (MaxSpeicherplatz < Speicherplatz + LBA) {
         std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
         //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
+        return nullptr;
       }
     }
     Partition Eintrag = {};
@@ -113,8 +131,13 @@ public:
           partitions[i].lastSektor == NULL) {
         partitions[i] = Eintrag;
         break;
+        return partitions + i;
       }
     }
+  std::cerr << "Die Partition konnte nicht erstellt werden, da die maximal Anzahl an Partitionen erreicht wurde" << std::endl;
+    return nullptr;
+  }
+  unsigned char checkbootable(Partition E) { // überprüft ob eine Partition bootbar ist. Wird gesetzt wenn System gesetzt ist und First und Lastsektor gesetzt sind
 
     return Eintrag;
   }
@@ -155,6 +178,10 @@ public:
         maxCylinders * maxHeads * maxSectors; // Todo Restspeicher abziehen
     if (Speicherplatz >= maxSpeicher) {
       throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes"); //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
+        maxCylinders * maxHeads * maxSectors;
+    if (Speicherplatz >= maxSpeicher) {
+      throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
+      return nullptr;
     }
 
     // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können

@@ -205,6 +205,20 @@ int test_mbr() {
     std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p2) << "Bytes" << std::endl;;
   if (p != nullptr)
     std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p) << "Bytes" << std::endl;
+  mbr.createPartition(500000,INODE);
+  mbr.createPartition(1000000);
+  mbr.createPartition(6000000,INODE);
+  std::cout << "Erstellung P1 erfolgreich" << std::endl;
+  Partition p = *mbr.getSingularPartition(0);
+  mbr.checkPartitionsize(p);
+  mbr.checkSizeReserviert();
+
+  Partition p2 = *mbr.getSingularPartition(1);
+  std::cout << "Partition selektiert" << std::endl;
+  mbr.deletePartition(0);
+  Partition p3 = *mbr.getSingularPartition(1);
+  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p2) << "Bytes" << std::endl;;
+  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p) << "Bytes" << std::endl;;
 
   return 0;
 }
