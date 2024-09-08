@@ -189,7 +189,7 @@ int test_mbr() {
   std::cout << "Erstellung mBR erfolgreich" << std::endl;
   mbr.createPartition(2000000);
   mbr.createPartition(1000000);
-  mbr.createPartition(6000000,INODE);
+  mbr.createPartition(6000000,INODE_SYSTEM);
   std::cout << "Erstellung P1 erfolgreich" << std::endl;
   Partition* p = mbr.getSingularPartition(0);
   if (p != nullptr)

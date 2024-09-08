@@ -24,7 +24,7 @@ const unsigned int maxCylinders = 1024;
 
 enum SpeicherSystem : unsigned char {
   BS_FAT,
-  INODE
+  INODE_SYSTEM
 };
 
 struct CHS {
@@ -219,7 +219,7 @@ void deletePartition(unsigned int i) {
     if(i >= MAX_PARTITION_COUNT) {
         std::cerr << "Partition index übersteigt den Maximalenwert von " << static_cast<size_t>(MAX_PARTITION_COUNT) << std::endl;
     } else {
-      partitions[i] = {0, SpeicherSystem::INODE, 0, nullptr, nullptr, nullptr, nullptr};
+      partitions[i] = {0, SpeicherSystem::INODE_SYSTEM, 0, nullptr, nullptr, nullptr, nullptr};
       std::cout << "Die Partition an der Stelle " << i << " wurde gelöscht" << std::endl;
     }
   }
@@ -276,7 +276,7 @@ void deletePartition(unsigned int i) {
     void *memory = ::operator new(Speicher);
     if (System == BS_FAT) {
       return bootBSFat(memory, BlockSize, Speicher, datahandler);
-    } else if (System == INODE) {
+    } else if (System == INODE_SYSTEM) {
       return bootINode(memory, BlockSize, Speicher, datahandler);
     } else {
         return nullptr;

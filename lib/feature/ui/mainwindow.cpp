@@ -50,13 +50,13 @@ void MainWindow::setHelpCommands(std::vector<Command> commands) {
 }
 
 SpeicherSystem stringToSpeicherSystem(std::string input){
-    if(input == "BS_Fat") return SpeicherSystem::BS_Fat;
-    if(input == "INodeSystem") return SpeicherSystem::INodeSystem;
-    return SpeicherSystem::BS_Fat;
+    if(input == "BS_Fat") return SpeicherSystem::BS_FAT;
+    if(input == "INodeSystem") return SpeicherSystem::INODE_SYSTEM;
+    return SpeicherSystem::BS_FAT;
 }
 ByteSizes stringToByteSize(std::string input){ //Todo überprüfen ob das im richtigen Progrmam überhaupt funktionieren wird
-    if(input == "Byte") return ByteSizes::Byte;
-    return ByteSizes::Byte;
+    if(input == "Byte") return ByteSizes::BYTE;
+    return ByteSizes::BYTE;
 };
 
 BlockSizes stringToBlockSize(std::string input){
@@ -122,11 +122,9 @@ bool MainWindow::handleCommand(str command) {
     }
     if (userInput.at(0) == "formatPart" && userInput.size() == 4){
         unsigned int index = std::stoull(userInput[1]);
-        unsigned long long size = std::stoull(userInput[2]); // TODO von wo krieg ich das?
-        ByteSizes byteSize = Byte; //Todo von wo kriege ich das?
         SpeicherSystem speicherSystem = stringToSpeicherSystem(userInput.at(2));
         BlockSizes blockSize = BlockSizes::B_512; //Todo von wo krieg ich das?
-        return formatPart(index,size,byteSize,speicherSystem,blockSize);
+        return formatPart(index,speicherSystem,blockSize);
     }
     if (userInput.at(0) == "createFile" && userInput.size() == 4){
         std::string* name = &userInput.at(1);
