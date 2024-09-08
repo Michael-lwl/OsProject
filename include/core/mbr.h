@@ -102,17 +102,19 @@ public:
         return nullptr;
       }
     }
-    Partition Eintrag = {};
-    // Data *dataHandler = new Data_Impl(this->BlockSize);
-    Eintrag.type = System;
-    Eintrag.startPtr = createstartSector();
-    Eintrag.firstSektor = createSector(getStart());
-    Eintrag.lastSektor = createSector(getStart() + Speicherplatz);
+    unsigned int sectorsCount = Speicherplatz / BlockSize;
     Data* datahandler = new Data_Impl(BlockSize);
-    Eintrag.system = createSystem(System, Speicherplatz, datahandler, BlockSize);
+    Partition Eintrag = {
+        0,
+        System,
+        sectorsCount,
+        createSector(getStart()),
+        createSector(getStart() + Speicherplatz),
+        createstartSector(),
+        createSystem(System, Speicherplatz, datahandler, BlockSize)
+    };
     Eintrag.isBootable = checkbootable(Eintrag);
-    Eintrag.sectorsCount = Speicherplatz / BlockSize;
-    for (int i = 0; i < MAX_PARTITION_COUNT; i++) {
+    for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
       if (partitions[i].firstSektor == NULL &&
           partitions[i].lastSektor == NULL) {
         partitions[i] = Eintrag;
@@ -163,7 +165,7 @@ public:
       std::cerr <<("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes") << std::endl;
       return nullptr;
     }
-    
+
 
       // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können
       sector->s = (Speicherplatz % maxSectors) + 1; // Sektoren starten bei 1,
@@ -213,7 +215,7 @@ public:
 void deletePartition(unsigned int i) {
     if(i >= MAX_PARTITION_COUNT) std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
     else {
-      partitions[i] = {0};
+      partitions[i] = {0, SpeicherSystem::INODE, 0, nullptr, nullptr, nullptr, nullptr};
       std::cout << "Die Partition an der" << i << "Stelle wurde gelöscht" << std::endl;
     }
   }
@@ -295,7 +297,7 @@ private:
   unsigned long long MaxSpeicherplatz = 0;
   unsigned int sectorsCount = 0;
   unsigned int diskSignature = 0; // normalerweise nur in Windows
-  Partition partitions[MAX_PARTITION_COUNT] = {0};
+  Partition partitions[MAX_PARTITION_COUNT];
 };
 
 #endif // MBR_H

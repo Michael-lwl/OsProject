@@ -8,7 +8,6 @@
 #include <cmath>
 #include <iostream>
 #include <ostream>
-#include <string.h>
 #include <string>
 
 #define TODO std::cout << "TODO: implement the rest" << std::endl;
@@ -201,24 +200,12 @@ int test_mbr() {
   std::cout << "Partition selektiert" << std::endl;
   mbr.deletePartition(0);
   Partition* p3 = mbr.getSingularPartition(1);
-  if (p2 != nullptr)
-    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p2) << "Bytes" << std::endl;;
   if (p != nullptr)
     std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p) << "Bytes" << std::endl;
-  mbr.createPartition(500000,INODE);
-  mbr.createPartition(1000000);
-  mbr.createPartition(6000000,INODE);
-  std::cout << "Erstellung P1 erfolgreich" << std::endl;
-  Partition p = *mbr.getSingularPartition(0);
-  mbr.checkPartitionsize(p);
-  mbr.checkSizeReserviert();
-
-  Partition p2 = *mbr.getSingularPartition(1);
-  std::cout << "Partition selektiert" << std::endl;
-  mbr.deletePartition(0);
-  Partition p3 = *mbr.getSingularPartition(1);
-  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p2) << "Bytes" << std::endl;;
-  std::cout << "Die Partition hat" << mbr.checkPartitionsize(p) << "Bytes" << std::endl;;
+  if (p2 != nullptr)
+    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p2) << "Bytes" << std::endl;
+  if (p3 != nullptr)
+    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p3) << "Bytes" << std::endl;
 
   return 0;
 }

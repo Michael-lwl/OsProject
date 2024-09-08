@@ -169,9 +169,10 @@ protected:
     bool changeDisk();
     bool wipeDisk(size_t index);
     bool createPart(size_t size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
+    bool createPart(unsigned long long size, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
     bool deletePart(size_t index);
     bool changePart();
-    bool formatPart(size_t index, unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
+    bool formatPart(size_t index, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
     bool createFile(std::string* name, unsigned long long fileSize, unsigned char flags = Flags::ASCII);
     bool listFiles();
     bool deleteFile(std::string* name);

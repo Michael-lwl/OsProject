@@ -187,6 +187,10 @@ bool MainWindow::wipeDisk(size_t index) {
   return true;
 }
 bool MainWindow::createPart(size_t size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize) {
+  return createPart(size * getSizeInByte(byteSize), system, blockSize);
+}
+
+bool MainWindow::createPart(unsigned long long size, SpeicherSystem system, BlockSizes blockSize) {
   if (mbrIndex >= this->drives.size()) {
     std::cout << colorize("Error: Internal Error, please try again!", Color::RED) << std::endl;
     mbrIndex = 0;
@@ -197,7 +201,7 @@ bool MainWindow::createPart(size_t size, ByteSizes byteSize, SpeicherSystem syst
     std::cout << colorize("Error: Cannot create Disk: Disk is full!", Color::RED) << std::endl;
     return false;
   }
-  Partition* p = mbr->createPartition(size * getSizeInByte(byteSize), system, blockSize);
+  Partition* p = mbr->createPartition(size, system, blockSize);
   return p != nullptr;
 }
 
@@ -228,16 +232,17 @@ bool MainWindow::changePart() {
     return true;
 }
 
-bool MainWindow::formatPart(size_t index, unsigned long long size, ByteSizes byteSize, SpeicherSystem system, BlockSizes blockSize) {
+bool MainWindow::formatPart(size_t index, SpeicherSystem system, BlockSizes blockSize) {
   if (index > this->drives.size()) {
     std::cout << colorize("Error: Cannot format Partition: Index is invalid!", Color::RED) << std::endl;
     return false;
   }
+  unsigned long long partSize = this->drives.at(mbrIndex)->getPartitions()[index].system->DRIVE_SIZE;
   if (!deletePart(index)) {
     std::cout << colorize("Error: Could not format Partition: Error in delete partition!", Color::MAGENTA) << std::endl;
     return false;
   }
-  if (!createPart(size, byteSize, system, blockSize)) {
+  if (!createPart(partSize, system, blockSize)) {
     std::cout << colorize("Error could not format Partition: Error in creating partition!", Color::MAGENTA) << std::endl;
     return false;
   }
@@ -287,7 +292,7 @@ bool MainWindow::listFiles() {
   }
   System* system = mbr->getPartitions()[partIndex].system;
   std::vector<std::shared_ptr<File>> files = system->getAllFiles();
-  for (std::shared_ptr<File> f : files) {
+  for (std::shared_ptr<File>& f : files) {
     std::cout << "File \"" << colorize(*(f->getFilePath()), Color::YELLOW) << "\" Flags =" << f->getFlags() << "\n";
   }
   std::cout.flush();
@@ -338,7 +343,10 @@ bool MainWindow::insertFile(std::string* name, std::string pathToCopyFrom) {
 
     try {
       filelen = filesystem::file_size(pathToCopyFrom);
-    } catch (exception* ex) {
+    } catch (std::filesystem::filesystem_error& ex) {
+      std::cout << colorize("Error: Cannot find input-file!", Color::RED) << std::endl;
+      return false;
+    } catch (std::bad_alloc& ex) {
       std::cout << colorize("Error: Cannot find input-file!", Color::RED) << std::endl;
       return false;
     }

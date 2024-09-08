@@ -7,6 +7,17 @@ BIN_DIR := bin
 # Project name
 PROJECT_NAME := OsProject
 
+# Detect the OS
+ifeq ($(OS),Windows_NT)
+    RM := del /Q
+    MKDIR := if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
+    EXE := .exe
+else
+    RM := rm -rf
+    MKDIR := mkdir -p $(BUILD_DIR)
+    EXE :=
+endif
+
 # Default target: Build and run the project
 .PHONY: all
 all: cmake-build
@@ -14,12 +25,13 @@ all: cmake-build
 
 # Run the executable after the build
 	@echo "Running the executable..."
-	@./$(BIN_DIR)/$(PROJECT_NAME)
+	@./$(BIN_DIR)/$(PROJECT_NAME)$(EXE)
 
 # CMake configuration and build
 .PHONY: cmake-build
 cmake-build:
-	@mkdir -p $(BUILD_DIR)
+	@echo "Starting cmake..."
+	@$(MKDIR)
 	@cd $(BUILD_DIR) && cmake ..
 	@$(MAKE) -C $(BUILD_DIR)
 
@@ -27,7 +39,8 @@ cmake-build:
 .PHONY: clean
 clean:
 	@echo "Cleaning up build and bin directories..."
-	@rm -rf $(BUILD_DIR) $(BIN_DIR)
+	@$(RM) $(BUILD_DIR) $(BIN_DIR)
+	@echo "Done."
 
 # Rebuild everything from scratch
 .PHONY: rebuild
