@@ -79,17 +79,17 @@ class Hamming : public Data {
 
         }
         ~Hamming(){}
-        int checkData(Array* data){
+        int checkData(Array* data) override {
             if (data == nullptr)
                 return -1;
             return checkAndCorrectData(data);
         }
-        std::unique_ptr<Array> getData(Array* encodedData){
+        std::unique_ptr<Array> getData(Array* encodedData) override {
             if (encodedData == nullptr)
                 return nullptr;
             return readData(encodedData);
         }
-        std::unique_ptr<Array> encodeData(Array* data){
+        std::unique_ptr<Array> encodeData(Array* data) override {
             if (data == nullptr)
                 return nullptr;
             if (data->getLength() > getDataLength()){
