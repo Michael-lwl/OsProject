@@ -32,7 +32,7 @@ class BsFat : public System
 
     public:
         // Factory function to allocate and construct BsFat with extra memory
-        static BsFat* create(void* memory, unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+        static BsFat* create(void* memory, unsigned long driveSize, BlockSizes blockSize, Data* dataHandler) {
             size_t bsFatSize = sizeof(BsFat);
             if (driveSize <= bsFatSize) {
                 return nullptr;
@@ -64,7 +64,12 @@ class BsFat : public System
 
         void show() override;
 
-        ~BsFat() = default;
+        ~BsFat() {
+            for (size_t i = 0; i < MAX_FILE_COUNT; i++) {
+                files[i].reset();
+            }
+
+        }
 
         void delFile(long index);
         void setBlocks(std::shared_ptr<BsFile> newFile);
@@ -78,6 +83,7 @@ class BsFat : public System
         std::shared_ptr<File> createFile(std::string* filePath, unsigned long fileSize, unsigned char flags) override;
         bool saveInFile(std::string* filePath, std::shared_ptr<Array> data) override;
         std::shared_ptr<File> getFile(std::string* filePath) override;
+        std::vector<std::shared_ptr<File>> getAllFiles() override;
         float getFragmentation() override;
         bool defragDisk() override;
 
@@ -115,7 +121,7 @@ class BsFat : public System
 
     private:
         // Private constructor to be used by the factory function
-        BsFat(unsigned long driveSize, unsigned long blockSize, Data* dataHandler, unsigned long blockCount)
+        BsFat(unsigned long driveSize, BlockSizes blockSize, Data* dataHandler, unsigned long blockCount)
             : System(dataHandler, driveSize, blockSize), blockCount(blockCount) {
             // Initialize BsClusters and associate data with each cluster
             for (size_t i = 0; i < blockCount; i++) {
@@ -147,7 +153,10 @@ class BsFile : public virtual File {
                 File(filePath, flags, reservedSpaceInBytes) {
             fileSizeInBytes = reservedSpaceInBytes;
             filesystem = fileSystem;
-            if (reservedSpaceInBytes == 0) return;
+            if (reservedSpaceInBytes == 0) {
+                this->fileStart = nullptr;
+                return;
+            }
             fileStart = fileSystem->getNewCluster();
             BsCluster* curCluster = fileStart;
 

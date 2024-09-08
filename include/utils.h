@@ -70,15 +70,10 @@ std::string colorize(std::string str, Color c);
 
 std::vector<std::string> splitAt(const std::string* str, const unsigned char splitter);
 
-inline std::ostream* SysOut() {
-    if (Output::os == nullptr) {
-        return &std::cout;
-    }
-    return Output::os;
+inline void showDefragMsg(int percent) {
+    std::cout << "Defragmentation status:\t" << percent << "%" << std::endl;
 }
 
-inline void showDefragMsg(int percent) {
-    *SysOut() << "Defragmentation status:\t" << percent << "%" << std::endl;
-}
+std::string convertToHtmlWithColors(const std::string& input);
 
 #endif

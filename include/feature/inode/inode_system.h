@@ -213,7 +213,7 @@ class INodeSystem : public System {
             return finalNumberOfInodes;
         }
 
-        static INodeSystem* create(void* memory, unsigned long driveSize, unsigned long blockSize, Data* dataHandler) {
+        static INodeSystem* create(void* memory, unsigned long driveSize, BlockSizes blockSize, Data* dataHandler) {
             size_t inodeSystemSize = sizeof(INodeSystem);
             if (driveSize <= inodeSystemSize) {
                 return nullptr;
@@ -232,7 +232,7 @@ class INodeSystem : public System {
 
             size_t remainingDataBlocks = driveSizeNoOverhead - reservedSpaceForINodes;
 
-            *SysOut() << "-------------------------------------------------------"
+            std::cout << "-------------------------------------------------------"
                           << "\nTotal size of drive:      " << driveSize
                           << "\nUsable size of drive:     " << driveSizeNoOverhead
                           << "\nINodeCount:               " << inodeCount
@@ -279,6 +279,8 @@ class INodeSystem : public System {
         /// Returns the file via the INodes' id.
         /// Might return null!
         std::shared_ptr<File> getFile(unsigned long iNodeId);
+
+        std::vector<std::shared_ptr<File>> getAllFiles() override ;
         float getFragmentation() override;
         bool defragDisk() override;
 
@@ -319,14 +321,14 @@ class INodeSystem : public System {
         const size_t dataBlockCount;
     private:
 
-      INodeSystem(size_t driveSizeInBytes, size_t blockSize, Data* dataHandler, size_t iNodeCount) :
+      INodeSystem(size_t driveSizeInBytes, BlockSizes blockSize, Data* dataHandler, size_t iNodeCount) :
         System(dataHandler, driveSizeInBytes, blockSize) ,
         iNodeSize(getBytesPerInode(driveSizeInBytes)),
         iNodeCount(iNodeCount),
         dataBlockCount(((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) - ((driveSizeInBytes - iNodeCount * sizeof(INode) - sizeof(INodeSystem)) % blockSize)) / blockSize) {
-          iNodes = getINode(0);
+          this->iNodes = getINode(0);
           for (size_t i = 0; i < iNodeCount; i++) {
-            new (iNodes + i) INode(nullptr, 0, 0, this);
+            new (this->iNodes + i) INode(nullptr, 0, 0, this);
           }
           for (size_t i = 0; i < dataBlockCount; i++) {
             new (getDataBlock(i)) DataBlock(BLOCK_SIZE - sizeof(DataBlock));

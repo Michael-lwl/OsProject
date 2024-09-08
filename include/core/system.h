@@ -4,6 +4,7 @@
 #include "./data.h"
 #include "./states.h"
 #include "./file.h"
+#include "data_sizes.h"
 #include "directory.h"
 #include <exception>
 #include <iostream>
@@ -16,10 +17,10 @@ class System {
 
     public:
 
-        const size_t BLOCK_SIZE;
+        const BlockSizes BLOCK_SIZE;
         const size_t DRIVE_SIZE;
 
-        System(Data* dataHandler, size_t driveSize, size_t blockSize): BLOCK_SIZE(blockSize), DRIVE_SIZE(driveSize){
+        System(Data* dataHandler, size_t driveSize, BlockSizes blockSize): BLOCK_SIZE(blockSize), DRIVE_SIZE(driveSize){
             if (dataHandler == nullptr) {
                 throw std::exception();
             }
@@ -48,6 +49,8 @@ class System {
         ///Returns a the file associated with the specified path.
         ///Might return null!
         virtual std::shared_ptr<File> getFile(std::string* filePath) = 0;
+        ///Returns a vector of all files
+        virtual std::vector<std::shared_ptr<File>> getAllFiles() = 0;
         ///Returns the disks fragmentation.
         ///Please return 0, if defragmentation is not necessary in the filesystem.
         virtual float getFragmentation() = 0;
@@ -62,7 +65,7 @@ class System {
             return iterations * totalLength;
         };
 
-        /// Shows this Systems Datablocks in *SysOut()
+        /// Shows this Systems Datablocks in std::cout
         virtual void show() = 0;
 
         //Getter and setter

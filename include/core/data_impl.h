@@ -11,9 +11,9 @@ class Data_Impl : public Data {
         Data_Impl(unsigned int elementLength):  Data(elementLength, elementLength){
         }
         ~Data_Impl(){}
-        int checkData(){return 0;}
-        std::unique_ptr<Array> getData(Array* encodedData){return std::make_unique<Array>(encodedData);}
-        std::unique_ptr<Array> encodeData(Array* data){return std::make_unique<Array>(data);}
+        virtual int checkData(Array* data){(void) data; return 0;}
+        virtual std::unique_ptr<Array> getData(Array* encodedData){return std::make_unique<Array>(encodedData);}
+        virtual std::unique_ptr<Array> encodeData(Array* data){return std::make_unique<Array>(data);}
 };
 
 #endif

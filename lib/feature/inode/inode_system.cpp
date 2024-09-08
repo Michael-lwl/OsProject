@@ -12,7 +12,7 @@ bool INodeSystem::deleteFile(std::string *filePath) {
     std::cerr << "File \"" << filePath << "\" does not exist!" << std::endl;
     return false;
   }
-  *SysOut() << "Deleting File \"" << *filePath << "\"." << std::endl;
+  std::cout << "Deleting File \"" << *filePath << "\"." << std::endl;
   file->resizeFile(0);
   file->setFlags(0);
   file->rename(nullptr);
@@ -177,6 +177,16 @@ std::shared_ptr<File> INodeSystem::getFile(unsigned long iNodeId) {
   return static_pointer_cast<File>(dir);
 }
 
+std::vector<std::shared_ptr<File>> INodeSystem::getAllFiles() {
+    std::vector<std::shared_ptr<File>> output;
+    for (size_t i = 0; i < this->iNodeCount; i++) {
+        if (this->getINode(i) != nullptr && this->getINode(i)->getFlags() != 0) {
+            output.push_back(std::static_pointer_cast<File>(std::make_shared<INode>(this->iNodes[i])));
+        }
+    }
+    return output;
+}
+
 float INodeSystem::getFragmentation() {
   long free = 0;
   long freeMax = 0;
@@ -211,8 +221,8 @@ bool INodeSystem::defragDisk() {
   const size_t DATA_BLOCK_BLOCK_SIZE = BLOCK_SIZE - sizeof(DataBlock);
 
   showDefragMsg(0);
-  vector<TempINode> usedFiles;
-  usedFiles.reserve(this->iNodeCount / 2);
+  vector<TempINode>* usedFiles = new vector<TempINode>();
+  usedFiles->reserve(this->iNodeCount / 2);
   // Collect all used files
   for (unsigned int i = 0; i < iNodeCount; i++) {
     INode file = this->iNodes[i];
@@ -220,7 +230,7 @@ bool INodeSystem::defragDisk() {
         continue;
       std::unique_ptr<Array> data = file.getData();
       TempINode tmp = {&file, std::move(data)};
-      usedFiles.push_back(tmp);
+      usedFiles->push_back(tmp);
   }
   showDefragMsg(25);
   // Clearing INodes
@@ -237,7 +247,7 @@ bool INodeSystem::defragDisk() {
   // Setting all data
   size_t curINode = 0;
   size_t curBlock = 0;
-  for (TempINode tmp : usedFiles) {
+  for (TempINode tmp : *usedFiles) {
     /// set all blocks
     size_t len = tmp.data->getLength();
     size_t fullBlocks = len / DATA_BLOCK_BLOCK_SIZE;
@@ -374,12 +384,13 @@ char INodeSystem::getCharForObjective(DataBlock *db) {
 }
 
 void INodeSystem::show() {
-  *SysOut() << colorize("|", Color::WHITE);
-  for (unsigned int i = 0; i < this->dataBlockCount; i++) {
-    DataBlock *c = this->getDataBlock(i);
-    std::string str{this->getCharForObjective(c)};
-    *SysOut() << colorize(str, getColorForStatus(c->status));
-    *SysOut() << '|';
-  }
-  *SysOut() << std::endl;
+    std::string DIVIDER_CHAR("|");
+    const std::string DIVIDER = colorize(DIVIDER_CHAR, Color::WHITE);
+    std::string output = DIVIDER;
+    for (unsigned int i = 0; i < this->getBlockCount(); i++) {
+        DataBlock* c = this->getDataBlock(i);
+        std::string str = {this->getCharForObjective(c)};
+        output += colorize(str, getColorForStatus(c->status)) + DIVIDER;
+    }
+    std::cout << output << std::endl;
 }

@@ -42,7 +42,7 @@ class Array {
                 safeFree(arr);
                 break;
                 case AUTO:
-                delete arr;
+                delete [] arr;
                 break;
                 case DONT_DELETE:
                 default:
