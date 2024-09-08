@@ -1,6 +1,5 @@
 #include "./../../../include/feature/ui/mainwindow.h"
 #include "./../../../include/utils.h"
-#include <exception>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -25,6 +24,13 @@ void clearLayout(QLayout* layout, bool deleteWidgets = true)
         delete item;
     }
 }
+
+bool MainWindow::isDarkMode(const QPalette& palette) {
+    QColor backgroundColor = palette.color(QPalette::Window);
+    QColor textColor = palette.color(QPalette::WindowText);
+    return backgroundColor.lightness() < textColor.lightness();
+}
+
 
 void MainWindow::setCommand(Command c) {
     this->commandInput->clear();
@@ -69,7 +75,7 @@ bool MainWindow::handleCommand(str command) {
     return false;
 }
 
-std::string mapMbrToString(MBR* mbr, size_t curPartIndex) {
+std::string mapMbrToString(MBR* mbr, size_t curPartIndex, Color highlightColor) {
     if (mbr == nullptr) return "";
     using namespace std;
     string output = "";
@@ -119,7 +125,7 @@ std::string mapMbrToString(MBR* mbr, size_t curPartIndex) {
             }
 
             if (curIndex == curPartIndex) {
-                output.append(colorize(BORDER, Color::YELLOW));
+                output.append(colorize(BORDER, highlightColor));
             } else {
                 output.append(BORDER);
             }
@@ -141,7 +147,7 @@ void MainWindow::loadDrive() {
     output.append(to_string(mbrIndex));
     output.append("\n");
     if (this->drives.at(mbrIndex)->getPartitionCount() > 0)
-        output.append(mapMbrToString(this->drives.at(mbrIndex), partIndex));
+        output.append(mapMbrToString(this->drives.at(mbrIndex), partIndex, this->highlightColor));
     this->renderedView->setHtml(QString::fromStdString(convertToHtmlWithColors(output)));
 }
 

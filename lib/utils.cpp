@@ -63,7 +63,7 @@ std::string colorize_headless(std::string str, Color c) {
 }
 
 std::string colorize(std::string str, Color c) {
-    return colorize_headless(str, c).append(colorCharCode(WHITE));
+    return colorize_headless(str, c).append(colorCharCode(BLACK));
 }
 
 std::vector<std::string> splitAt(const std::string* string, const unsigned char splitter) {

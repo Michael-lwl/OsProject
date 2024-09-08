@@ -193,38 +193,46 @@ int test_mbr() {
   std::cout << "Erstellung P1 erfolgreich" << std::endl;
   Partition* p = mbr.getSingularPartition(0);
   if (p != nullptr)
-    mbr.checkPartitionsize(*p);
+    mbr.checkPartitionsize(p);
   mbr.checkSizeReserviert();
   mbr.getPartitions();
   Partition* p2 = mbr.getSingularPartition(1);
   std::cout << "Partition selektiert" << std::endl;
   mbr.deletePartition(0);
+  std::cout << "After deletion!" << std::endl;
   Partition* p3 = mbr.getSingularPartition(1);
   if (p != nullptr)
-    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p) << "Bytes" << std::endl;
+    std::cout << "Die Partition hat" << mbr.checkPartitionsize(p) << "Bytes" << std::endl;
   if (p2 != nullptr)
-    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p2) << "Bytes" << std::endl;
+    std::cout << "Die Partition hat" << mbr.checkPartitionsize(p2) << "Bytes" << std::endl;
   if (p3 != nullptr)
-    std::cout << "Die Partition hat" << mbr.checkPartitionsize(*p3) << "Bytes" << std::endl;
+    std::cout << "Die Partition hat" << mbr.checkPartitionsize(p3) << "Bytes" << std::endl;
 
   return 0;
 }
 
-int main(int argc, char **argv) {
-    (void) argc;
-    (void) argv;
-  // int output = 0;
-  // BlockSizes blockSize = BlockSizes::B_512;
-  // unsigned long long memorySize = 8 * getSizeInByte(ByteSizes::MiB); // 8 MebiByte
-  // output |= test_BsFat(memorySize, blockSize);
-  // output |= test_INodes(memorySize, blockSize);
-  // return output;
-  QApplication app(argc, argv);
+int test_filesystems() {
+    int output = 0;
+    BlockSizes blockSize = BlockSizes::B_512;
+    unsigned long long memorySize = 8 * getSizeInByte(ByteSizes::MiB); // 8 MebiByte
+    output |= test_BsFat(memorySize, blockSize);
+    output |= test_INodes(memorySize, blockSize);
+    return output;
+}
 
+int main(int argc, char **argv) {
+  if (argc > 1) {
+    if(std::string("mbr").compare(argv[1]) == 0) {
+      return test_mbr();
+    }
+    if (std::string("filesystems").compare(argv[1]) == 0) {
+        return test_filesystems();
+    }
+  }
+  QApplication app(argc, argv);
   MainWindow mainWindow;
   mainWindow.setWindowTitle("OsProject");
-  mainWindow.showMaximized();
+  mainWindow.show();
 
   return app.exec();
-  // return test_mbr();
 }

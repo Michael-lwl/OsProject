@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QFont>
+#include <QPalette>
 #include <qt/QtCore/qglobal.h>
 #include "./command.h"
 #include "./../../utils.h"
@@ -26,6 +27,10 @@ QT_END_NAMESPACE
 
 class MainWindow : public QWidget {
 public:
+
+    ///Determins the dark mode if the given pallete's background is darker than its foreground
+    static bool isDarkMode(const QPalette& palette);
+
     MainWindow(QWidget* parent = nullptr) : QWidget(parent),
         mbrIndex(0), partIndex(0)    {
         QVBoxLayout* mainLayout = new QVBoxLayout(this);
@@ -39,6 +44,13 @@ public:
                                                    | Qt::TextInteractionFlag::LinksAccessibleByMouse
                                                    | Qt::TextInteractionFlag::TextSelectableByKeyboard
                                                    | Qt::TextInteractionFlag::LinksAccessibleByKeyboard;
+
+        //change Highlight color depending on theme palette (light or dark)
+        if(MainWindow::isDarkMode(QApplication::palette())) {
+            this->highlightColor = Color::YELLOW;
+        } else {
+            this->highlightColor = Color::GREEN;
+        }
 
         // Create the renderedView (50% height, 100% width)
         this->renderedView = new QTextEdit("*ToBeContinued*");
@@ -129,10 +141,10 @@ public:
         // Set the layout to the main window
         setLayout(mainLayout);
         std::cout << "Welcome to our Project: A Drive-Simulator" << std::endl;
-        MBR* mbr = new MBR(8 * getSizeInByte(MiB));
-        mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB));
-        mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB), SpeicherSystem::INODE);
-        this->drives.push_back(mbr);
+        // MBR* mbr = new MBR(8 * getSizeInByte(MiB));
+        // mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB));
+        // mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB), SpeicherSystem::INODE);
+        // this->drives.push_back(mbr);
         loadDrive();
         setCommandHints();
     }
@@ -191,6 +203,7 @@ private:
     std::ostringstream oss;
     CustomStreamBuf* customBuffer;
     std::streambuf* originalCoutBuffer;
+    Color highlightColor;
     std::vector<Command> cmds;
 
     void updateAll() {

@@ -198,13 +198,16 @@ public:
     return MemoryAllocated;
     ;
   }
-  unsigned long long checkPartitionsize(Partition p) { // Berechnet die Size einer ganzer Partition indem first vom last Setkor abgezogen wird
-    unsigned long long c1 = p.firstSektor->c;
-    unsigned long long h1 = p.firstSektor->h;
-    unsigned long long s1 = p.firstSektor->s;
-    unsigned long long c2 = p.lastSektor->c;
-    unsigned long long h2 = p.lastSektor->h;
-    unsigned long long s2 = p.lastSektor->s;
+  unsigned long long checkPartitionsize(Partition* p) { // Berechnet die Size einer ganzer Partition indem first vom last Setkor abgezogen wird
+    if (p == nullptr || p->firstSektor == nullptr|| p->lastSektor == nullptr) {
+        return 0;
+    }
+    unsigned long long c1 = p->firstSektor->c;
+    unsigned long long h1 = p->firstSektor->h;
+    unsigned long long s1 = p->firstSektor->s;
+    unsigned long long c2 = p->lastSektor->c;
+    unsigned long long h2 = p->lastSektor->h;
+    unsigned long long s2 = p->lastSektor->s;
     unsigned long long c = c2 - c1;
     unsigned long long h = h2 - h1;
     unsigned long long s = s2 - s1;
@@ -213,10 +216,11 @@ public:
     return Ergebnis;
   }
 void deletePartition(unsigned int i) {
-    if(i >= MAX_PARTITION_COUNT) std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
-    else {
+    if(i >= MAX_PARTITION_COUNT) {
+        std::cerr << "Partition index übersteigt den Maximalenwert von " << static_cast<size_t>(MAX_PARTITION_COUNT) << std::endl;
+    } else {
       partitions[i] = {0, SpeicherSystem::INODE, 0, nullptr, nullptr, nullptr, nullptr};
-      std::cout << "Die Partition an der" << i << "Stelle wurde gelöscht" << std::endl;
+      std::cout << "Die Partition an der Stelle " << i << " wurde gelöscht" << std::endl;
     }
   }
  /* void deletePartition(int i) { // Hilfsmethode um Partition zu löschen
