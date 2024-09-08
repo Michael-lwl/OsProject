@@ -34,7 +34,7 @@ bool MainWindow::isDarkMode(const QPalette& palette) {
 
 void MainWindow::setCommand(Command c) {
     this->commandInput->clear();
-    this->commandInput->insert(c.getCmd().c_str());
+    this->commandInput->insert(c.getCmdTemplate().c_str());
 }
 
 void MainWindow::setHelpCommands(std::vector<Command> commands) {
@@ -55,17 +55,33 @@ SpeicherSystem stringToSpeicherSystem(std::string input){
     return SpeicherSystem::BS_FAT;
 }
 ByteSizes stringToByteSize(std::string input){ //Todo überprüfen ob das im richtigen Progrmam überhaupt funktionieren wird
-    if(input == "Byte") return ByteSizes::BYTE;
-    return ByteSizes::BYTE;
+    if(input == "Byte") return ByteSizes::Byte;
+    if(input == "Kilobyte") return ByteSizes::KiB;
+    if(input == "KB") return ByteSizes::KB;
+    if(input == "Megabyte") return ByteSizes::Megabyte;
+    if(input == "MB") return ByteSizes::MB;
+    if(input == "Mebibyte") return ByteSizes::Mebibyte;
+    if(input == "MiB") return ByteSizes::MiB;
+    if(input == "Gigabyte") return ByteSizes::Gigabyte;
+    if(input == "Gib") return ByteSizes::GiB;
+    if(input == "Terrabyte") return ByteSizes::Terrabyte;
+    if(input =="TB") return ByteSizes::TB;
+    if(input == "Tebibyte") return ByteSizes::Tebibyte;
+    if(input == "TiB") return ByteSizes::TiB;
+    return ByteSizes::Byte;
 };
 
 BlockSizes stringToBlockSize(std::string input){
     if(input == "B_512") return BlockSizes::B_512;
+    if(input == "KIB_1") return BlockSizes::KIB_1;
+    if(input == "KIB_2") return BlockSizes::KIB_2;
+    if(input == "KIB_4") return BlockSizes::KIB_4;
+    if(input == "KIB_8") return BlockSizes::KIB_8;
+    if(input == "KIB_16") return BlockSizes::KIB_16;
     return BlockSizes::B_512;
 }
-Flags stringToFlags(std::string input){
-    if(input == "ASCII") return Flags::ASCII;
-    return ASCII;
+bool flagsAreValid(unsigned char input) {
+    return (input == 0);
 }
 bool MainWindow::handleCommand(str command) {
     //Fast exit
@@ -87,24 +103,24 @@ bool MainWindow::handleCommand(str command) {
             continue;
         }
     }
-    if (userInput.at(0) == "createDisk" && userInput.size() == 3){
+    if (userInput.at(0) == Command::DISK_CREATE.getCmd() && userInput.size() == 3){
         unsigned long long size = std::stoull(userInput[1]);
         ByteSizes byteSize = ByteSizes::Byte;
         return createDisk(size, byteSize);
     }
-    if (userInput.at(0) == "deleteDisk" && userInput.size() == 2){
+    if (userInput.at(0) == Command::DISK_DELETE.getCmd() && userInput.size() == 2){
         unsigned int index = std::stoull(userInput[1]);
         return deleteDisk(index);
     }
-    if (userInput.at(0) == "changeDisk" && userInput.size() == 1){
+    if (userInput.at(0) == Command::DISK_CHANGE.getCmd() && userInput.size() == 1){
 
         return changeDisk();
     }
-    if (userInput.at(0) == "wipeDisk" && userInput.size() == 2){
+    if (userInput.at(0) == Command::DISK_WIPE.getCmd() && userInput.size() == 2){
         unsigned int index = std::stoull(userInput[1]);
         return wipeDisk(index);
     }
-     if (userInput.at(0) == "createPart" && userInput.size() == 5){
+     if (userInput.at(0) == Command::PARTITION_CREATE.getCmd() && userInput.size() == 5){
         unsigned long long size = std::stoull(userInput[1]);
         ByteSizes byteSize = stringToByteSize(userInput.at(2));        //TODO herausfinden wie UserInput zu enum
         SpeicherSystem system = stringToSpeicherSystem(userInput.at(3));
@@ -112,49 +128,49 @@ bool MainWindow::handleCommand(str command) {
         return createPart(size,byteSize,system,blockSize);
     }
 
-    if (userInput.at(0) == "deletePart" && userInput.size() == 2){
+    if (userInput.at(0) == Command::PARTITION_DELETE.getCmd() && userInput.size() == 2){
         unsigned int index = std::stoull(userInput[1]); //TODO herausfinden wie UserInput zu enum
 
         return deletePart(index);
     }
-    if (userInput.at(0) == "changePart" && userInput.size() == 1){
+    if (userInput.at(0) == Command::PARTITION_CHANGE.getCmd() && userInput.size() == 1){
         return changePart();
     }
-    if (userInput.at(0) == "formatPart" && userInput.size() == 4){
+    if (userInput.at(0) == Command::PARTITION_FORMAT.getCmd() && userInput.size() == 4){
         unsigned int index = std::stoull(userInput[1]);
         SpeicherSystem speicherSystem = stringToSpeicherSystem(userInput.at(2));
         BlockSizes blockSize = BlockSizes::B_512; //Todo von wo krieg ich das?
         return formatPart(index,speicherSystem,blockSize);
     }
-    if (userInput.at(0) == "createFile" && userInput.size() == 4){
+    if (userInput.at(0) == Command::FILE_CREATE.getCmd() && userInput.size() == 4){
         std::string* name = &userInput.at(1);
         unsigned long long fileSize = std::stoull(userInput[2]);
-        Flags flags = stringToFlags(userInput.at(3));
+        unsigned char flags = userInput.at(3)[0];
+        if (!flagsAreValid(flags)) {
+            std::cout << colorize("Error: not a valid flag!", Color::RED) << std::endl;
+            return false;
+        }
         return createFile(name,fileSize,flags);
     }
-    if (userInput.at(0) == "listFiles" && userInput.size() == 1){
+    if (userInput.at(0) == Command::FILE_LIST.getCmd() && userInput.size() == 1){
         return listFiles();
     }
-    if (userInput.at(0) == "deleteFile" && userInput.size() == 2){
+    if (userInput.at(0) == Command::FILE_DELETE.getCmd() && userInput.size() == 2){
         std::string* name = &userInput.at(1);
         return deleteFile(name);
     }
-     if (userInput.at(0) == "insertFile" && userInput.size() == 3){
+     if (userInput.at(0) == Command::FILE_INSERT.getCmd() && userInput.size() == 3){
         std::string* name = &userInput.at(1);
         std::string path = userInput.at(2);
         return insertFile(name,path);
      }
-     if (userInput.at(0) == "readFile" && userInput.size() == 3){
+     if (userInput.at(0) == Command::FILE_READ.getCmd() && userInput.size() == 3){
          std::string* name = &userInput.at(1);
          std::string output = userInput[2];
          std::ostream& outputstream = std::cout << output;  //todo konvertieren
          return readFile(name, outputstream);
      }
-
-
-
-
-    std::cout<< "No valid command!" << std::endl;
+    std::cout<< "Invalid command!" << std::endl;
 
     return false;
 }

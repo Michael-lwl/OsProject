@@ -51,22 +51,26 @@ public:
     str getCmd() const {return this->cmd;}
     str getName() const {return this->name;}
     str getDesc() const {return this->desc;}
+    str getCmdTemplate() const {return this->cmdTemplate;}
 
     Command(Command* c):
         cmd(c->cmd),
         name(c->name),
-        desc(c->desc) {
+        desc(c->desc),
+        cmdTemplate(c->cmdTemplate){
     }
 
 private:
     str cmd;
     str name;
     str desc;
+    str cmdTemplate;
 
-    Command(str cmd, str name, str desc):
+    Command(str cmd, str name, str desc, str cmdTemplate):
         cmd(cmd),
         name(name),
-        desc(desc){
+        desc(desc),
+        cmdTemplate(cmdTemplate){
     }
 };
 

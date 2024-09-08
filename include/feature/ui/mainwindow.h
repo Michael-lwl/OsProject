@@ -121,9 +121,6 @@ public:
         QWidget* buttonContainer = new QWidget;
         this->buttonLayout = new QVBoxLayout(buttonContainer);
 
-        //Init Log window
-        Output::os = new std::ostringstream();
-
         buttonContainer->setLayout(this->buttonLayout);
         scrollArea->setWidget(buttonContainer);
         scrollArea->setWidgetResizable(true);
