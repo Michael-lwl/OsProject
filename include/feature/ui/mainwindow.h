@@ -182,6 +182,8 @@ protected:
     bool deletePart(size_t index);
     bool changePart();
     bool formatPart(size_t index, SpeicherSystem system, BlockSizes blockSize = BlockSizes::B_512);
+    bool getFragmentPart(size_t partIndex);
+    bool defragmentPart(size_t partIndex);
     bool createFile(std::string* name, unsigned long long fileSize, unsigned char flags = Flags::ASCII);
     bool listFiles();
     bool deleteFile(std::string* name);

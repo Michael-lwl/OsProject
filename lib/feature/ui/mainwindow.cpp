@@ -49,40 +49,60 @@ void MainWindow::setHelpCommands(std::vector<Command> commands) {
     }
 }
 
-SpeicherSystem stringToSpeicherSystem(std::string input){
-    if(input == "BS_Fat") return SpeicherSystem::BS_FAT;
-    if(input == "INodeSystem") return SpeicherSystem::INODE_SYSTEM;
+std::string toLower(std::string& in) {
+    std::string input = in; // Kopiere den Originalstring
+    std::transform(input.begin(), input.end(), input.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    return input;
+}
+SpeicherSystem stringToSpeicherSystem(std::string in){
+    std::string input = "";
+    input = toLower(in);
+    if(input == "bs_fat") return SpeicherSystem::BS_FAT;
+    if(input == "inodesystem") return SpeicherSystem::INODE_SYSTEM;
+    std::cout << colorize( "Das eingegebene System wurde nicht erkannt. Es wird nun der Standardwert BS_Fat übergeben", Color::RED) << std::endl;
     return SpeicherSystem::BS_FAT;
 }
-ByteSizes stringToByteSize(std::string input){ //Todo überprüfen ob das im richtigen Progrmam überhaupt funktionieren wird
-    if(input == "Byte") return ByteSizes::Byte;
-    if(input == "Kilobyte") return ByteSizes::KiB;
-    if(input == "KB") return ByteSizes::KB;
-    if(input == "Megabyte") return ByteSizes::Megabyte;
-    if(input == "MB") return ByteSizes::MB;
-    if(input == "Mebibyte") return ByteSizes::Mebibyte;
-    if(input == "MiB") return ByteSizes::MiB;
-    if(input == "Gigabyte") return ByteSizes::Gigabyte;
-    if(input == "Gib") return ByteSizes::GiB;
-    if(input == "Terrabyte") return ByteSizes::Terrabyte;
-    if(input =="TB") return ByteSizes::TB;
-    if(input == "Tebibyte") return ByteSizes::Tebibyte;
-    if(input == "TiB") return ByteSizes::TiB;
+ByteSizes stringToByteSize(std::string in){ //Todo überprüfen ob das im richtigen Progrmam überhaupt funktionieren wird
+    std::string input = toLower(in);
+    if(input == "byte") return ByteSizes::Byte;
+    if(input == "kilobyte") return ByteSizes::Kilobyte;
+    if(input == "kb") return ByteSizes::KB;
+    if(input == "kibibyte") return ByteSizes::Kibibyte;
+    if(input == "kib") return ByteSizes::KiB;
+    if(input == "megabyte") return ByteSizes::Megabyte;
+    if(input == "mb") return ByteSizes::MB;
+    if(input == "mebibyte") return ByteSizes::Mebibyte;
+    if(input == "mib") return ByteSizes::MiB;
+    if(input == "gigabyte") return ByteSizes::Gigabyte;
+    if(input == "gb") return ByteSizes::GB;
+    if(input == "gibibyte") return ByteSizes::Gibibyte;
+    if(input == "gib") return ByteSizes::GiB;
+    if(input == "terrabyte") return ByteSizes::Terrabyte;
+    if(input == "tb") return ByteSizes::TB;
+    if(input == "tebibyte") return ByteSizes::Tebibyte;
+    if(input == "tib") return ByteSizes::TiB;
+    std::cout << colorize( "Es wurde kein gültiger ByteSize-Wert übergeben, es wird nun mit der Standardgroesse Byte weitergearbeiter", Color::RED)  << std::endl;
     return ByteSizes::Byte;
 };
 
-BlockSizes stringToBlockSize(std::string input){
-    if(input == "B_512") return BlockSizes::B_512;
-    if(input == "KIB_1") return BlockSizes::KIB_1;
-    if(input == "KIB_2") return BlockSizes::KIB_2;
-    if(input == "KIB_4") return BlockSizes::KIB_4;
-    if(input == "KIB_8") return BlockSizes::KIB_8;
-    if(input == "KIB_16") return BlockSizes::KIB_16;
+BlockSizes stringToBlockSize(std::string in){
+    std::string input = "";
+    input = toLower(in);
+    if(input == "b_512") return BlockSizes::B_512;
+    if(input == "kib_1") return BlockSizes::KIB_1;
+    if(input == "kib_2") return BlockSizes::KIB_2;
+    if(input == "kib_4") return BlockSizes::KIB_4;
+    if(input == "kib_8") return BlockSizes::KIB_8;
+    if(input == "kib_16") return BlockSizes::KIB_16;
+    std::cout << colorize( "Es wurde keine gültige BlockSize übergeben, es wird nun mit der Standardgroesse von B_512 weitergearbeitet", Color::RED)  << std::endl;
     return BlockSizes::B_512;
 }
+
 bool flagsAreValid(unsigned char input) {
     return (input == 0);
 }
+
 bool MainWindow::handleCommand(str command) {
     //Fast exit
     if (command.compare(Command::EXIT.getCmd()) == 0) {
@@ -91,56 +111,74 @@ bool MainWindow::handleCommand(str command) {
     }
     std::vector<str> userInput = splitAt(&command, ' ');
     if (userInput.empty()) return false;
-    for (const Command &c : Command::getAllCommands()) {
-        std::string cmd = c.getCmd();
-        std::vector<str> cmdAndParams = splitAt(&cmd, ' ');
-        //If not same amount of params skip
-        if (cmdAndParams.size() > userInput.size()) {
-            continue;
-        }
-        //If not same command skip
-        if (userInput.at(0) != cmdAndParams.at(0)) {
-            continue;
-        }
-    }
     if (userInput.at(0) == Command::DISK_CREATE.getCmd() && userInput.size() == 3){
         unsigned long long size = std::stoull(userInput[1]);
         ByteSizes byteSize = ByteSizes::Byte;
-        return createDisk(size, byteSize);
+        if(createDisk(size, byteSize)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::DISK_DELETE.getCmd() && userInput.size() == 2){
         unsigned int index = std::stoull(userInput[1]);
-        return deleteDisk(index);
+        if(deleteDisk(index)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::DISK_CHANGE.getCmd() && userInput.size() == 1){
-
-        return changeDisk();
+        if(changeDisk()) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::DISK_WIPE.getCmd() && userInput.size() == 2){
         unsigned int index = std::stoull(userInput[1]);
-        return wipeDisk(index);
+        if(wipeDisk(index)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
      if (userInput.at(0) == Command::PARTITION_CREATE.getCmd() && userInput.size() == 5){
         unsigned long long size = std::stoull(userInput[1]);
         ByteSizes byteSize = stringToByteSize(userInput.at(2));        //TODO herausfinden wie UserInput zu enum
         SpeicherSystem system = stringToSpeicherSystem(userInput.at(3));
         BlockSizes blockSize =  stringToBlockSize(userInput.at(4));
-        return createPart(size,byteSize,system,blockSize);
+        if(createPart(size,byteSize,system,blockSize)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
 
     if (userInput.at(0) == Command::PARTITION_DELETE.getCmd() && userInput.size() == 2){
         unsigned int index = std::stoull(userInput[1]); //TODO herausfinden wie UserInput zu enum
-
-        return deletePart(index);
+        if (deletePart(index)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::PARTITION_CHANGE.getCmd() && userInput.size() == 1){
-        return changePart();
+        if(changePart()) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::PARTITION_FORMAT.getCmd() && userInput.size() == 4){
         unsigned int index = std::stoull(userInput[1]);
         SpeicherSystem speicherSystem = stringToSpeicherSystem(userInput.at(2));
         BlockSizes blockSize = BlockSizes::B_512; //Todo von wo krieg ich das?
-        return formatPart(index,speicherSystem,blockSize);
+        if(formatPart(index,speicherSystem,blockSize)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::FILE_CREATE.getCmd() && userInput.size() == 4){
         std::string* name = &userInput.at(1);
@@ -150,25 +188,45 @@ bool MainWindow::handleCommand(str command) {
             std::cout << colorize("Error: not a valid flag!", Color::RED) << std::endl;
             return false;
         }
-        return createFile(name,fileSize,flags);
+        if (createFile(name,fileSize,flags)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::FILE_LIST.getCmd() && userInput.size() == 1){
-        return listFiles();
+        if(listFiles()) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
     if (userInput.at(0) == Command::FILE_DELETE.getCmd() && userInput.size() == 2){
         std::string* name = &userInput.at(1);
-        return deleteFile(name);
+        if(deleteFile(name)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
     }
      if (userInput.at(0) == Command::FILE_INSERT.getCmd() && userInput.size() == 3){
         std::string* name = &userInput.at(1);
         std::string path = userInput.at(2);
-        return insertFile(name,path);
+        if(insertFile(name,path)) {
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
      }
      if (userInput.at(0) == Command::FILE_READ.getCmd() && userInput.size() == 3){
          std::string* name = &userInput.at(1);
          std::string output = userInput[2];
          std::ostream& outputstream = std::cout << output;  //todo konvertieren
-         return readFile(name, outputstream);
+         if(readFile(name, outputstream)) {
+             loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+             return true;
+         }
+         return false;
      }
     std::cout<< "Invalid command!" << std::endl;
 
@@ -353,6 +411,46 @@ bool MainWindow::formatPart(size_t index, SpeicherSystem system, BlockSizes bloc
     return false;
   }
   return true;
+}
+
+bool MainWindow::getFragmentPart(size_t partIndex) {
+    if (mbrIndex >= this->drives.size()) {
+      std::cout << colorize("Internal error! Please try again!", Color::RED) << std::endl;
+      this->mbrIndex = 0;
+      return false;
+    }
+    MBR* mbr = this->drives.at(mbrIndex);
+    if (partIndex > mbr->getPartitionCount()) {
+      std::cout << colorize("Internal error! Please try again!", Color::RED) << std::endl;
+      this->partIndex = 0;
+      return false;
+    }
+    System* system = mbr->getPartitions()[partIndex].system;
+    if (system == nullptr) {
+      std::cout << colorize("Error: Cannot get Fragmentation without a filesystem! First create one with createPart!" , Color::RED) << std::endl;
+      return false;
+    }
+    std::cout << colorize("Fragmentation: " +std::to_string(system->getFragmentation()), Color::MAGENTA) << std::endl;
+    return true;
+}
+bool MainWindow::defragmentPart(size_t partIndex) {
+    if (mbrIndex >= this->drives.size()) {
+      std::cout << colorize("Internal error, no files read! Please try again!", Color::RED) << std::endl;
+      this->mbrIndex = 0;
+      return false;
+    }
+    MBR* mbr = this->drives.at(mbrIndex);
+    if (partIndex > mbr->getPartitionCount()) {
+      std::cout << colorize("Internal error, no files read! Please try again!", Color::RED) << std::endl;
+      this->partIndex = 0;
+      return false;
+    }
+    System* system = mbr->getPartitions()[partIndex].system;
+    if (system == nullptr) {
+      std::cout << colorize("Error: Cannot create File without a filesystem! First create one with createPart!" , Color::RED) << std::endl;
+      return false;
+    }
+    return system->defragDisk();
 }
 
 bool MainWindow::createFile(std::string* name, unsigned long long fileSize, unsigned char flags) {
@@ -542,7 +640,9 @@ void MainWindow::setCommandHints() {
   }
   cmds.push_back(Command::DISK_WIPE);
   cmds.push_back(Command::DISK_DELETE);
-  cmds.push_back(Command::DISK_CHANGE);
+  if (this->drives.size() > 1) {
+    cmds.push_back(Command::DISK_CHANGE);
+  }
   if (mbrIndex >= this->drives.size())
     mbrIndex = 0;
   MBR* curMbr = this->drives.at(mbrIndex);
@@ -554,8 +654,10 @@ void MainWindow::setCommandHints() {
     partIndex = 0;
   if (PART_COUNT > 0) {
     cmds.push_back(Command::PARTITION_FORMAT);
-    cmds.push_back(Command::PARTITION_CHANGE);
     cmds.push_back(Command::PARTITION_DELETE);
+  }
+  if (PART_COUNT > 1){
+    cmds.push_back(Command::PARTITION_CHANGE);
   }
   if (curMbr->getPartitions()[0].system == nullptr) {
     setHelpCommands(cmds);

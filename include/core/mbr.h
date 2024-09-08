@@ -78,7 +78,7 @@ public:
   size_t getPartitionCount() {
     size_t output = 0;
     for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
-      if (partitions[i].firstSektor == nullptr)
+      if (partitions[i].firstSektor != nullptr)
         output++;
     }
     return output;
