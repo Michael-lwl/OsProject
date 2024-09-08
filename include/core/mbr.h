@@ -50,8 +50,6 @@ public:
 
   MBR(unsigned long long driveSize) {
 
-    // Todo Inputs für memorySize und BlockSize für die händische Abfrage
-    // einfügen
     this->MaxSpeicherplatz = driveSize;
     this->sectorsCount = 0;
     for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
@@ -68,20 +66,9 @@ public:
   }
 
   // Getter
-  unsigned int getSectorsCount() { return sectorsCount; }
-  unsigned int getDiskSignature() { return diskSignature; }
-  Partition *getpartitions() { return partitions; }
 
-  size_t getPartitionCount() {
-    size_t output = 0;
-    for (size_t i = 0; i < MAX_PARTITION_COUNT; i++) {
-      if (partitions[i].firstSektor == nullptr)
-        output++;
-    }
 
-    this->MaxSpeicherplatz = driveSize;
-    this->sectorsCount = 0;
-  }
+
 
   // Getter
   unsigned int getSectorsCount() { return sectorsCount; }
@@ -105,8 +92,7 @@ public:
     this->diskSignature = diskSignature;
   }
 
-  Partition createPartition(unsigned long long Speicherplatz, SpeicherSystem System = BS_FAT, BlockSizes BlockSize = BlockSizes::B_512) { // erstellt Partitio
-    // Todo check Rest Speicherplatz
+
   Partition* createPartition(unsigned long long Speicherplatz, SpeicherSystem System = BS_FAT, BlockSizes BlockSize = BlockSizes::B_512) { // erstellt Partitio
     if (partitions[0].firstSektor != NULL && partitions[0].lastSektor != NULL) {
       unsigned long long LBA = checkLBA();
@@ -137,10 +123,7 @@ public:
   std::cerr << "Die Partition konnte nicht erstellt werden, da die maximal Anzahl an Partitionen erreicht wurde" << std::endl;
     return nullptr;
   }
-  unsigned char checkbootable(Partition E) { // überprüft ob eine Partition bootbar ist. Wird gesetzt wenn System gesetzt ist und First und Lastsektor gesetzt sind
 
-    return Eintrag;
-  }
   unsigned char checkbootable(Partition E) { // überprüft ob eine Partition bootbar ist. Wird gesetzt wenn System gesetzt ist und First und Lastsektor gesetzt sind
 
     if (E.firstSektor != NULL && E.lastSektor != NULL && E.system != NULL) {
@@ -171,27 +154,29 @@ public:
     return 0;
   }
 
-  CHS *createSector(unsigned long long speicherplatzInBytes, unsigned int BlockSize = 512) { // Erstelle eineN CHS Sektor
+  CHS *createSector(unsigned long long speicherplatzInBytes, unsigned int BlockSize = 512) {
+    // Erstelle eineN CHS Sektor
     CHS *sector = new CHS;
     unsigned int Speicherplatz = speicherplatzInBytes / BlockSize;
     unsigned long maxSpeicher =
         maxCylinders * maxHeads * maxSectors; // Todo Restspeicher abziehen
     if (Speicherplatz >= maxSpeicher) {
       throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes"); //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
-        maxCylinders * maxHeads * maxSectors;
-    if (Speicherplatz >= maxSpeicher) {
-      throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
-      return nullptr;
+      maxCylinders * maxHeads * maxSectors;
+      if (Speicherplatz >= maxSpeicher) {
+        throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
+        return nullptr;
+      }
+
+      // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können
+      sector->s = (Speicherplatz % maxSectors) + 1; // Sektoren starten bei 1,
+      Speicherplatz /= maxSectors;
+      sector->h = Speicherplatz % maxHeads;
+      Speicherplatz /= maxHeads;
+      sector->c = Speicherplatz;
+
+      return sector;
     }
-
-    // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können
-    sector->s = (Speicherplatz % maxSectors) + 1; // Sektoren starten bei 1,
-    Speicherplatz /= maxSectors;
-    sector->h = Speicherplatz % maxHeads;
-    Speicherplatz /= maxHeads;
-    sector->c = Speicherplatz;
-
-    return sector;
   }
   CHS * createstartSector() { // Hilfsmethode um den Start Sektor zu ermitteln. Erstellt einen Sektor bei 0 0 1 wenn keine Einträge in partitions. Anosnsten wird ein Sektor direkt nach dem letzten LastSektor erstellt
     if (partitions[0].lastSektor == NULL && partitions[0].firstSektor == NULL) {
