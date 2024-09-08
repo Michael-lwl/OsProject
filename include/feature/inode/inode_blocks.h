@@ -51,7 +51,7 @@ class Block {
         Block(size_t blockSize) : BLOCK_SIZE(blockSize) {
 
         }
-        
+
         virtual ~Block() = default;
 
         virtual bool setData(Array* data) = 0;
@@ -133,31 +133,31 @@ class FirstIndirectBlock : public IndirectBlock, public Block {
 class SecondIndirectBlock : public IndirectBlock, public Block {
     public:
         SecondIndirectBlock(size_t blockSize) : Block(blockSize) {
-                data = new (static_cast<void*>(this + sizeof(SecondIndirectBlock))) FirstIndirectBlock*[blockSize];
-                status = AdditionalStats::INDIRECT_2;
-                // Initialize the blocks array to nullptr
-                size_t numPointers = blockSize / sizeof(FirstIndirectBlock*);
-                for (size_t i = 0; i < numPointers; i++) {
-                    data[i] = nullptr;
-                }
+            data = new (static_cast<void*>(this + sizeof(SecondIndirectBlock))) FirstIndirectBlock*[blockSize];
+            status = AdditionalStats::INDIRECT_2;
+            // Initialize the blocks array to nullptr
+            size_t numPointers = blockSize / sizeof(FirstIndirectBlock*);
+            for (size_t i = 0; i < numPointers; i++) {
+                data[i] = nullptr;
             }
+        }
 
-            ~SecondIndirectBlock() = default;
+        ~SecondIndirectBlock() = default;
 
-            bool setData(Array *data) override;
-            Array getData() override;
-            bool appendDataBlock(DataBlock *db, INodeSystem* system) override;
-            bool trimToSize(size_t blockCount) override;
-            unsigned long long getLength() override;
-            unsigned long long getCapacity() override {
-                return CAPACITY(BLOCK_SIZE);
-            }
-            static inline unsigned long long CAPACITY(size_t BLOCK_SIZE) {
-                return (BLOCK_SIZE- sizeof(SecondIndirectBlock))/ sizeof(FirstIndirectBlock*) * FirstIndirectBlock::CAPACITY(BLOCK_SIZE);
-            }
-            unsigned long long getByteCapacity() override {
-                return this->getCapacity() * BLOCK_SIZE;
-            }
+        bool setData(Array *data) override;
+        Array getData() override;
+        bool appendDataBlock(DataBlock *db, INodeSystem* system) override;
+        bool trimToSize(size_t blockCount) override;
+        unsigned long long getLength() override;
+        unsigned long long getCapacity() override {
+            return CAPACITY(BLOCK_SIZE);
+        }
+        static inline unsigned long long CAPACITY(size_t BLOCK_SIZE) {
+            return (BLOCK_SIZE- sizeof(SecondIndirectBlock))/ sizeof(FirstIndirectBlock*) * FirstIndirectBlock::CAPACITY(BLOCK_SIZE);
+        }
+        unsigned long long getByteCapacity() override {
+            return this->getCapacity() * BLOCK_SIZE;
+        }
         unsigned char status;
         FirstIndirectBlock** data;
 };

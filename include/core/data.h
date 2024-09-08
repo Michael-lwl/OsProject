@@ -12,7 +12,7 @@ class Data {
             this->dataLength = dataLength;
         }
         virtual ~Data(){elemLength = 0; dataLength = 0;}
-        virtual int checkData() = 0;
+        virtual int checkData(Array* data) = 0;
         virtual std::unique_ptr<Array> getData(Array* encodedData) = 0;
         virtual std::unique_ptr<Array> encodeData(Array* data) = 0;
         ///The max length one element will be after encoding
