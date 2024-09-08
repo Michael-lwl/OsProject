@@ -50,8 +50,7 @@ public:
 
   MBR(unsigned long long driveSize) {
 
-    // Todo Inputs für memorySize und BlockSize für die händische Abfrage
-    // einfügen
+
     this->MaxSpeicherplatz = driveSize;
     this->sectorsCount = 0;
   }
@@ -103,7 +102,7 @@ public:
         return partitions + i;
       }
     }
-  std::cerr << "Die Partition konnte nicht erstellt werden" << std::endl; //TODO warum eigentlich so
+  std::cerr << "Die Partition konnte nicht erstellt werden, da die maximal Anzahl an Partitionen erreicht wurde" << std::endl;
     return nullptr;
   }
   unsigned char checkbootable(Partition E) { // überprüft ob eine Partition bootbar ist. Wird gesetzt wenn System gesetzt ist und First und Lastsektor gesetzt sind
@@ -142,7 +141,8 @@ public:
     unsigned long maxSpeicher =
         maxCylinders * maxHeads * maxSectors;
     if (Speicherplatz >= maxSpeicher) {
-      throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes"); //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
+      throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
+      return nullptr;
     }
 
     // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können
