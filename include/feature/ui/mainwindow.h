@@ -138,10 +138,6 @@ public:
         // Set the layout to the main window
         setLayout(mainLayout);
         std::cout << "Welcome to our Project: A Drive-Simulator" << std::endl;
-        // MBR* mbr = new MBR(8 * getSizeInByte(MiB));
-        // mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB));
-        // mbr->createPartition(4 * getSizeInByte(ByteSizes::MiB), SpeicherSystem::INODE_SYSTEM);
-        // this->drives.push_back(mbr);
         loadDrive();
         setCommandHints();
     }

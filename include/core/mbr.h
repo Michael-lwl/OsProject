@@ -98,7 +98,6 @@ public:
       unsigned long long LBA = checkLBA();
       if (MaxSpeicherplatz < Speicherplatz + LBA) {
         std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
-        //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
         return nullptr;
       }
     }
@@ -160,7 +159,7 @@ public:
     CHS *sector = new CHS;
     unsigned int Speicherplatz = speicherplatzInBytes / BlockSize;
     unsigned long maxSpeicher =
-        maxCylinders * maxHeads * maxSectors; // Todo Restspeicher abziehen
+        maxCylinders * maxHeads * maxSectors;
     if (Speicherplatz >= maxSpeicher) {
       std::cerr <<("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes") << std::endl;
       return nullptr;
@@ -218,53 +217,21 @@ public:
 void deletePartition(unsigned int i) {
     if(i >= MAX_PARTITION_COUNT) {
         std::cerr << "Partition index übersteigt den Maximalenwert von " << static_cast<size_t>(MAX_PARTITION_COUNT) << std::endl;
-    } else {
+        return;
+    }
       partitions[i] = {0, SpeicherSystem::INODE_SYSTEM, 0, nullptr, nullptr, nullptr, nullptr};
       std::cout << "Die Partition an der Stelle " << i << " wurde gelöscht" << std::endl;
-    }
+      for (size_t index = i; index < MAX_PARTITION_COUNT - 1; index++) {
+          partitions[index] = partitions[index + 1];
+      }
+      partitions[MAX_PARTITION_COUNT - 1] = Partition {0, SpeicherSystem::BS_FAT, 0,nullptr, nullptr, nullptr, nullptr};
   }
- /* void deletePartition(int i) { // Hilfsmethode um Partition zu löschen
-    unsigned long long reserved[4] = {0};
-    if (partitions[i].firstSektor == nullptr || partitions[i].lastSektor == nullptr || (i > 3 || i < 0)) {
-      throw std::out_of_range("Es gibt diesen Eintrag nicht");
-    } else {
-      Partition p[4] = {0};
-      for (int j = 0; j < 4 - 1; j++) {
-        if (i != j && getSingularPartition(j) != nullptr) { // wenn j != i ist das ein Eintrag der nicht gelöscht oder verschoben werden muss
-          reserved[j] = checkPartitionsize(*getSingularPartition(j));
-          p->type = partitions[j].type;
-        } else if (i == j && i < 5) { // überspringt den Eintrag der gelöscht werden soll und speichert die Größe der Einträge die nicht gelöscht werden müssen
-          if (partitions[j + 1].firstSektor != NULL && getSingularPartition(j+1) != nullptr) {
-            reserved[j] = checkPartitionsize(*getSingularPartition(j + 1));
-            p[j].type = partitions[j + 1].type;
-            i++;
-          }
-        }
-      }
-      for(int index = 0; index < MAX_PARTITION_COUNT; index++) {
-        partitions[index] = {0};
-      }
-
-
-
-      for (int k = 0; k < 4; k++) {
-        if (reserved[k] != 0) {
-            if (p[k].system != nullptr)
-                partitions[k] = createPartition(reserved[k], p[k].type, p[k].system->BLOCK_SIZE);
-            else
-                partitions[k] = createPartition(reserved[k], p[k].type);
-        } else if (reserved[k] == 0) {
-          partitions[k] = {0};
-        }
-      }
-    }
-  }  */
 
   unsigned long long getMaxSpeicherplatz() {
     return this->MaxSpeicherplatz;
   }
   Partition *getPartitions() { return partitions; }
-  Partition* getSingularPartition(unsigned int i = 0) {
+  Partition* getPartition(unsigned int i = 0) {
     if (i >= MAX_PARTITION_COUNT) {
       std::cerr << "Partition index übersteigt den Maximalenwert von 4" << std::endl;
       return nullptr;

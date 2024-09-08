@@ -180,6 +180,26 @@ bool MainWindow::handleCommand(str command) {
         }
         return false;
     }
+    if(userInput.at(0) == Command::PARTITION_GET_FRAGMENTATION.getCmd() && userInput.size() == 2){
+        size_t index = std::stoull(userInput[1]);
+
+        if(getFragmentPart(index)){
+            loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+            return true;
+        }
+        return false;
+    }
+    if(userInput.at(0) == Command::PARTITION_DEFRAGMENT.getCmd() && userInput.size() == 2){
+        try {
+            size_t index = std::stoull(userInput[1]);
+
+            if(defragmentPart(index)){
+                loadDrive(); setCommandHints(); std::cout << colorize(command, Color::GREEN) << std::endl;
+                return true;
+            }
+        } catch (std::invalid_argument& err) {}
+        return false;
+    }
     if (userInput.at(0) == Command::FILE_CREATE.getCmd() && userInput.size() == 4){
         std::string* name = &userInput.at(1);
         unsigned long long fileSize = std::stoull(userInput[2]);
@@ -245,11 +265,11 @@ std::string mapMbrToString(MBR* mbr, size_t curPartIndex, Color highlightColor) 
     vector<PartitionSize> partSizes;
     partSizes.reserve(mbr->getPartitionCount());
     for (size_t i = 0; i < MBR::MAX_PARTITION_COUNT; i++) {
-        if (mbr->getPartitions()[i].firstSektor == nullptr || mbr->getPartitions()[i].system == nullptr) {
+        if (mbr->getPartition(i).firstSektor == nullptr || mbr->getPartition(i).system == nullptr) {
             continue;
         }
-        const size_t ds = mbr->getPartitions()[i].system->DRIVE_SIZE;
-        const size_t freeSpace = mbr->getPartitions()[i].system->getFreeSpace();
+        const size_t ds = mbr->getPartition(i).system->DRIVE_SIZE;
+        const size_t freeSpace = mbr->getPartition(i).system->getFreeSpace();
         PartitionSize ps = {i, static_cast<float>(ds - freeSpace) / ds};
         partSizes.push_back(ps);
     }
@@ -344,7 +364,7 @@ bool MainWindow::wipeDisk(size_t index) {
   }
   MBR* mbr = this->drives.at(index);
   for (size_t i = 0; i < MBR::MAX_PARTITION_COUNT; i++) {
-    if (mbr->getPartitions()[i].firstSektor != nullptr) {
+    if (mbr->getPartition(i).firstSektor != nullptr) {
       mbr->deletePartition(i);
     }
   }
