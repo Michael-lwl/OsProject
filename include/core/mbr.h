@@ -116,7 +116,6 @@ public:
       if (partitions[i].firstSektor == NULL &&
           partitions[i].lastSektor == NULL) {
         partitions[i] = Eintrag;
-        break;
         return partitions + i;
       }
     }
@@ -161,12 +160,10 @@ public:
     unsigned long maxSpeicher =
         maxCylinders * maxHeads * maxSectors; // Todo Restspeicher abziehen
     if (Speicherplatz >= maxSpeicher) {
-      throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes"); //Todo was kann ich hier machen wenn kein throw? ich will aus der FUnktion raus
-      maxCylinders * maxHeads * maxSectors;
-      if (Speicherplatz >= maxSpeicher) {
-        throw std::out_of_range("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes");
-        return nullptr;
-      }
+      std::cerr <<("Der gewünschte Speicherplatz liegt über dem Maximalwert der MBR von 8455716863 Bytes") << std::endl;
+      return nullptr;
+    }
+    
 
       // Direkte Berechnung der CHS-Werte. Modulo Berechnung um die Reste zuweisen zu können
       sector->s = (Speicherplatz % maxSectors) + 1; // Sektoren starten bei 1,
@@ -177,7 +174,7 @@ public:
 
       return sector;
     }
-  }
+
   CHS * createstartSector() { // Hilfsmethode um den Start Sektor zu ermitteln. Erstellt einen Sektor bei 0 0 1 wenn keine Einträge in partitions. Anosnsten wird ein Sektor direkt nach dem letzten LastSektor erstellt
     if (partitions[0].lastSektor == NULL && partitions[0].firstSektor == NULL) {
       return createSector(0);
