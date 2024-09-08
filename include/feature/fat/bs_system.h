@@ -153,7 +153,10 @@ class BsFile : public virtual File {
                 File(filePath, flags, reservedSpaceInBytes) {
             fileSizeInBytes = reservedSpaceInBytes;
             filesystem = fileSystem;
-            if (reservedSpaceInBytes == 0) return;
+            if (reservedSpaceInBytes == 0) {
+                this->fileStart = nullptr;
+                return;
+            }
             fileStart = fileSystem->getNewCluster();
             BsCluster* curCluster = fileStart;
 

@@ -384,12 +384,13 @@ char INodeSystem::getCharForObjective(DataBlock *db) {
 }
 
 void INodeSystem::show() {
-  std::cout << colorize("|", Color::WHITE);
-  for (unsigned int i = 0; i < this->dataBlockCount; i++) {
-    DataBlock *c = this->getDataBlock(i);
-    std::string str{this->getCharForObjective(c)};
-    std::cout << colorize(str, getColorForStatus(c->status));
-    std::cout << '|';
-  }
-  std::cout << std::endl;
+    std::string DIVIDER_CHAR("|");
+    const std::string DIVIDER = colorize(DIVIDER_CHAR, Color::WHITE);
+    std::string output = DIVIDER;
+    for (unsigned int i = 0; i < this->getBlockCount(); i++) {
+        DataBlock* c = this->getDataBlock(i);
+        std::string str = {this->getCharForObjective(c)};
+        output += colorize(str, getColorForStatus(c->status)) + DIVIDER;
+    }
+    std::cout << output << std::endl;
 }

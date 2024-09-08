@@ -1,38 +1,36 @@
-#include <iostream>
+#include <QPlainTextEdit>
 #include <sstream>
-#include <streambuf>
-#include <QApplication>
-#include <QWidget>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QSplitter>
-#include <QTextEdit>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QScrollArea>
+#include <iostream>
 #include "./../utils.h"
 
 #ifndef STREAM_BUF_H
 #define STREAM_BUF_H
 
+
 class CustomStreamBuf : public std::streambuf {
 public:
-    CustomStreamBuf(std::ostringstream& oss, QTextEdit* textEdit)
+    CustomStreamBuf(std::ostringstream& oss, QPlainTextEdit* textEdit)
         : oss(oss), textEdit(textEdit) {
         // Allocate a buffer to use for overflow
         setp(buffer, buffer + sizeof(buffer) - 1);
     }
 
-    ~CustomStreamBuf() = default;
+    ~CustomStreamBuf() override = default;
 
 protected:
     // This method is called when the internal buffer is full or needs to flush
     int overflow(int c = EOF) override {
         if (c != EOF) {
-            *pptr() = c;  // Add the character to the buffer
-            pbump(1);  // Increment the put pointer
+            // Check if the buffer is full
+            if (pptr() == epptr()) {
+                //flush the buffer
+                sync();
+            }
+            // Add the character to the buffer
+            *pptr() = c;
+            pbump(1);
         }
-        return sync() == 0 ? c : EOF;
+        return 0; // Indicate success
     }
 
     // This method is called to flush the buffer
@@ -42,11 +40,15 @@ protected:
         if (n > 0) {
             // Write buffer content to ostringstream
             oss.write(pbase(), n);
-            // Update the QTextEdit with the current content of the ostringstream
-            textEdit->setHtml(QString::fromStdString(convertToHtmlWithColors(oss.str())));
-            //textEdit->verticalScrollBar()->setValue(textEdit->verticalScrollBar()->maximum());
 
-            // Reset the buffer
+            // Convert buffer content to HTML and update the QPlainTextEdit
+            QString html = QString::fromStdString(convertToHtmlWithColors(oss.str()));
+            textEdit->appendHtml(html);
+            textEdit->moveCursor(QTextCursor::End);
+
+            // Clear the ostringstream and reset the buffer
+            oss.str("");
+            oss.clear();
             setp(buffer, buffer + sizeof(buffer) - 1);
         }
         return 0;
@@ -54,7 +56,7 @@ protected:
 
 private:
     std::ostringstream& oss;
-    QTextEdit* textEdit;
-    char buffer[1024];  // Internal buffer to store output before flushing
+    QPlainTextEdit* textEdit;
+    char buffer[1024 << 2];  // Internal buffer to store output before flushing
 };
 #endif //STREAM_BUF_H

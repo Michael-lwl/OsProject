@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <stdlib.h>
 #include <string>
 #include <vector>
@@ -35,7 +36,7 @@ unsigned char *createRandomSizedString()
     return createRandomString(rand());
 }
 
-const std::string colorCharCode(Color c){
+inline const std::string colorCharCode(Color c){
     switch (c){
         case RED:
             return std::string("\x1B[31m");

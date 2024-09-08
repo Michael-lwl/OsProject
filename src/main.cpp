@@ -17,7 +17,7 @@ void simpleAndClean(void *ptr) {
 }
 
 int colouredOutputTest() {
-  std::cout << colorize("T", Color::BLUE) << "es" << colorize("t", Color::RED)
+    std::cout << colorize(std::string("T"), Color::BLUE) << "es" << colorize(std::string("t"), Color::RED)
             << std::endl;
   return 0;
 }

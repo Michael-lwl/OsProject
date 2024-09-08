@@ -23,8 +23,7 @@ bool INode::setData(Array *data) {
   for (size_t dataBlockIndex = 0;
        counter < dataLen && dataBlockIndex < DIRECT_DATA_BLOCK_COUNT;
        counter += interval) {
-    Array curData = new Array(interval, data->getArray() + counter,
-                              MemAllocation::DONT_DELETE);
+    Array curData = new Array(interval, data->getArray() + counter, MemAllocation::DONT_DELETE);
     this->datablocks[dataBlockIndex++]->setData(&curData);
   }
 

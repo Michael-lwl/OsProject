@@ -13,6 +13,7 @@
 #include <QFont>
 #include <QPalette>
 #include <qt/QtCore/qglobal.h>
+#include <QPlainTextEdit>
 #include "./command.h"
 #include "./../../utils.h"
 #include "./../../core/stream_buf.h"
@@ -63,11 +64,11 @@ public:
         QSplitter* bottomGroup = new QSplitter(Qt::Horizontal);
 
         // textGroup (70% width)
-        QWidget* textGroup = new QWidget;
+        this->textGroup = new QWidget;
         QVBoxLayout* textGroupLayout = new QVBoxLayout(textGroup);
 
         // logView (80% height, 100% width)
-        this->logView = new QTextEdit("If you can read this, something has gone terribly wrong\n");
+        this->logView = new QPlainTextEdit("");
         this->logView->setFont(*textFont);
         this->logView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         this->logView->setTextInteractionFlags(textFlags);
@@ -134,6 +135,12 @@ public:
         bottomGroup->setStretchFactor(1, 4);  // scrollableCommandView takes remaining space (40%)
 
         mainLayout->addWidget(bottomGroup);
+         MBR* mbr = new MBR(210 * getSizeInByte(MiB));
+         Partition* p = mbr->createPartition(104 * getSizeInByte(ByteSizes::MiB));
+         mbr->createPartition(104 * getSizeInByte(ByteSizes::MiB), SpeicherSystem::INODE_SYSTEM);
+         std::string* testName = new std::string("test.txt");
+         p->system->createFile(testName, 70 * getSizeInByte(ByteSizes::MiB), Flags::ASCII);
+         this->drives.push_back(mbr);
 
         // Set the layout to the main window
         setLayout(mainLayout);
@@ -159,6 +166,8 @@ protected:
         // Ensure the button remains square
         int height = this->commandButton->height();
         commandButton->setFixedWidth(height);
+
+        this->renderedView->setMinimumHeight(sizeHint().height() * 0.5);
 
         QWidget::resizeEvent(event);
     }
@@ -191,7 +200,7 @@ private:
     size_t mbrIndex;
     size_t partIndex;
     QTextEdit* renderedView;
-    QTextEdit* logView;
+    QPlainTextEdit* logView;
     QPushButton* commandButton;
     QVBoxLayout* buttonLayout;
     QLineEdit* commandInput;
@@ -200,6 +209,7 @@ private:
     std::streambuf* originalCoutBuffer;
     Color highlightColor;
     std::vector<Command> cmds;
+    QWidget* textGroup;
 
     void updateAll() {
         loadDrive();

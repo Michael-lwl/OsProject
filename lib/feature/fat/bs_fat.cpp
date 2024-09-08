@@ -23,15 +23,16 @@ char BsFat::getCharForObjective(BsCluster *cluster) {
 }
 
 void BsFat::show() {
-    std::cout << colorize("|", Color::WHITE);
-    for (unsigned int i = 0; i < this->getBlockCount(); i++)
-    {
+    std::string DIVIDER_CHAR("|");
+    const std::string DIVIDER = colorize(DIVIDER_CHAR, Color::WHITE);
+    std::string output = DIVIDER;
+    for (unsigned int i = 0; i < this->getBlockCount(); i++) {
         BsCluster* c = this->getCluster(i);
-        std::string str{this->getCharForObjective(c)};
-        std::cout << colorize(str, getColorForStatus(c->status));
-        std::cout << '|';
+        std::string str = {this->getCharForObjective(c)};
+        output += colorize(str, getColorForStatus(c->status)) + DIVIDER;
     }
-    std::cout<<std::endl;
+
+    std::cout << output << std::endl;
 }
 
 
@@ -93,7 +94,7 @@ unsigned long BsFat::getFreeSpace() {
 
 bool BsFat::hasFreeFileSpace()
 {
-    return getFileCount() != 0;
+    return getFileCount() < MAX_FILE_COUNT;
 }
 
 unsigned long BsFat::getFileCount() {
@@ -225,7 +226,7 @@ bool BsFat::defragDisk() {
         if (this->files[i] == nullptr)
             continue;
         BsFile* file = this->files[i].get();
-        if (file == nullptr || file->getFileStart() == nullptr)
+        if (file == nullptr || file->getFileStart() == nullptr || file->getFilePath() == nullptr)
             continue;
         BsCluster* curCluster = file->getFileStart();
 
@@ -235,7 +236,7 @@ bool BsFat::defragDisk() {
             curFile.push_back(curCluster);
             vector<char> curData;
             curData.reserve(BLOCK_SIZE);
-            unsigned char* dataBlock = getDataBlock(curCluster->blockIndex);
+            unsigned char* dataBlock = new (getDataBlock(curCluster->blockIndex)) unsigned char[BLOCK_SIZE];
             if (dataBlock) {
                 memcpy(curData.data(), dataBlock, BLOCK_SIZE);
             }
@@ -252,7 +253,7 @@ bool BsFat::defragDisk() {
     unsigned int newIndex = 0;
     char isFilestart = 0;
     vector<BsCluster*> fileStarts;
-    for (vector<BsCluster*> file : usedFiles)
+    for (vector<BsCluster*>& file : usedFiles)
     {
         isFilestart = 1;
         for (BsCluster* cluster : file)
@@ -293,9 +294,9 @@ bool BsFat::defragDisk() {
     }
     //Rearrange data
     blockCounter = 0;
-    for (auto curFileData: usedData){
+    for (auto& curFileData : usedData){
         ///curFileData: all data from one file
-        for (auto curData: curFileData){
+        for (auto& curData: curFileData){
             //curData: all data from one block
             while (this->getCluster(blockCounter)->status == Status::CORRUPTED || this->getCluster(blockCounter)->status == Status::RESERVED)
             {
