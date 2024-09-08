@@ -135,12 +135,13 @@ public:
         bottomGroup->setStretchFactor(1, 4);  // scrollableCommandView takes remaining space (40%)
 
         mainLayout->addWidget(bottomGroup);
-         MBR* mbr = new MBR(210 * getSizeInByte(MiB));
-         Partition* p = mbr->createPartition(104 * getSizeInByte(ByteSizes::MiB));
-         mbr->createPartition(104 * getSizeInByte(ByteSizes::MiB), SpeicherSystem::INODE_SYSTEM);
-         std::string* testName = new std::string("test.txt");
-         p->system->createFile(testName, 70 * getSizeInByte(ByteSizes::MiB), Flags::ASCII);
-         this->drives.push_back(mbr);
+        ///TEST VALUES FOR FASTER CREATION, CAN BE COMMENTED IN
+        // MBR* mbr = new MBR(210 * getSizeInByte(MiB));
+        // Partition* p = mbr->createPartition(104 * getSizeInByte(ByteSizes::MiB));
+        // mbr->createPartition(104 * getSizeInByte(ByteSizes::MiB), SpeicherSystem::INODE_SYSTEM);
+        // std::string* testName = new std::string("test.txt");
+        // p->system->createFile(testName, 70 * getSizeInByte(ByteSizes::MiB), Flags::ASCII);
+        // this->drives.push_back(mbr);
 
         // Set the layout to the main window
         setLayout(mainLayout);
